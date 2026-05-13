@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>ระบบลงเวลาปฏิบัติงาน GPS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    :root {
+      --bg: #0a0f1e;
+      --surface: #111827;
+      --surface2: #1a2235;
+      --border: #1e3a5f;
+      --accent: #00d4ff;
+      --accent2: #00ff9d;
+      --accent3: #ff6b35;
+      --text: #e8f4fd;
+      --text-muted: #7a9bb8;
+      --danger: #ff4757;
+      --card-shadow: 0 8px 32px rgba(0,212,255,0.08);
+      --glow: 0 0 20px rgba(0,212,255,0.3);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Sarabun', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .blob { position: fixed; border-radius: 50%; filter: blur(80px); opacity: 0.12; pointer-events: none; z-index: 0; }
+    .blob-1 { width: 400px; height: 400px; background: var(--accent); top: -100px; right: -100px; }
+    .blob-2 { width: 300px; height: 300px; background: var(--accent2); bottom: 50px; left: -80px; }
+
+    /* Demo Banner */
+    .demo-banner {
+      position: sticky; top: 0; z-index: 100;
+      background: #120e00;
+      border-bottom: 1px solid #f59e0b44;
+      padding: 9px 16px;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 12px; color: #fbbf24;
+    }
+    .demo-banner strong { color: #f59e0b; }
+    .demo-dot { width: 7px; height: 7px; background: #f59e0b; border-radius: 50%; animation: blink 1.2s infinite; flex-shrink: 0; }
+
+    /* GAS Panel */
+    .gas-panel {
+      background: linear-gradient(135deg, #0a160a, #0a1210);
+      border: 1px solid #00ff9d33;
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 14px;
+    }
+    .gas-panel-title { font-size: 11px; font-weight: 700; color: var(--accent2); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .gas-input-row { display: flex; gap: 8px; }
+    .gas-input-row input {
+      flex: 1;
+      background: #060c15;
+      border: 1px solid #1e3a5f;
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      outline: none;
+      min-width: 0;
+    }
+    .gas-input-row input:focus { border-color: var(--accent2); }
+    .gas-input-row input::placeholder { color: #2a4060; }
+    .gas-connect-btn {
+      background: linear-gradient(135deg, #006644, #00d4aa);
+      border: none; border-radius: 8px; padding: 10px 14px;
+      color: #001a10; font-family: 'Sarabun', sans-serif;
+      font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap;
+      transition: all 0.2s; flex-shrink: 0;
+    }
+    .gas-connect-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+    .gas-status-row { margin-top: 8px; font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+    .gas-status-row.connected { color: var(--accent2); }
+    .gas-status-row.error-state { color: var(--danger); }
+
+    /* Layout */
+    .container { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 16px; padding-bottom: 40px; }
+    .header { text-align: center; padding: 20px 0 18px; }
+    .header-icon {
+      width: 64px; height: 64px; margin: 0 auto 14px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 18px; display: flex; align-items: center; justify-content: center;
+      font-size: 30px; box-shadow: var(--glow);
+      animation: pulse-icon 3s ease-in-out infinite;
+    }
+    @keyframes pulse-icon {
+      0%,100% { box-shadow: 0 0 20px rgba(0,212,255,0.3); }
+      50% { box-shadow: 0 0 40px rgba(0,212,255,0.6), 0 0 60px rgba(0,255,157,0.2); }
+    }
+    .header h1 { font-size: 22px; font-weight: 700; letter-spacing: 0.5px; }
+    .header p { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+    /* Clock */
+    .clock-bar {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 20px; margin-bottom: 16px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .clock-time { font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 500; color: var(--accent); letter-spacing: 2px; }
+    .clock-date { font-size: 12px; color: var(--text-muted); text-align: right; line-height: 1.6; }
+
+    /* Card */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 14px; box-shadow: var(--card-shadow); }
+    .card-title {
+      font-size: 12px; font-weight: 600; color: var(--accent);
+      letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+
+    /* Form */
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; letter-spacing: 0.5px; text-transform: uppercase; }
+    input[type="text"] {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px; color: var(--text);
+      font-family: 'Sarabun', sans-serif; font-size: 15px; transition: all 0.2s; outline: none;
+    }
+    input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,212,255,0.1); }
+    input[type="text"]::placeholder { color: #3a5070; }
+
+    /* Type Toggle */
+    .type-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .type-btn {
+      padding: 14px 10px; border-radius: 12px; border: 2px solid var(--border);
+      background: var(--surface2); color: var(--text-muted);
+      font-family: 'Sarabun', sans-serif; font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .type-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .type-btn.active-in { border-color: var(--accent2); background: rgba(0,255,157,0.08); color: var(--accent2); box-shadow: 0 0 16px rgba(0,255,157,0.15); }
+    .type-btn.active-out { border-color: var(--accent3); background: rgba(255,107,53,0.08); color: var(--accent3); box-shadow: 0 0 16px rgba(255,107,53,0.15); }
+
+    /* GPS */
+    .gps-status { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; }
+    .gps-dot { width: 10px; height: 10px; border-radius: 50%; background: #3a5070; flex-shrink: 0; transition: all 0.3s; }
+    .gps-dot.acquiring { background: #f59e0b; animation: blink 1s infinite; }
+    .gps-dot.success { background: var(--accent2); box-shadow: 0 0 8px var(--accent2); }
+    .gps-dot.error { background: var(--danger); }
+    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+    .gps-text { flex: 1; font-size: 13px; color: var(--text-muted); }
+    .gps-coords { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--accent); margin-top: 2px; }
+    .gps-retry-btn { background: none; border: 1px solid var(--border); color: var(--text-muted); border-radius: 6px; padding: 5px 10px; font-size: 12px; cursor: pointer; font-family: 'Sarabun', sans-serif; transition: all 0.2s; }
+    .gps-retry-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .accuracy-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+    .accuracy-fill { height: 100%; background: linear-gradient(90deg, var(--accent2), var(--accent)); border-radius: 2px; transition: width 0.5s; width: 0%; }
+
+    /* Textarea */
+    textarea {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px; color: var(--text);
+      font-family: 'Sarabun', sans-serif; font-size: 14px; resize: none; height: 70px; outline: none; transition: all 0.2s;
+    }
+    textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,212,255,0.1); }
+    textarea::placeholder { color: #3a5070; }
+
+    /* Submit */
+    .submit-btn {
+      width: 100%; padding: 16px;
+      background: linear-gradient(135deg, #0077aa, var(--accent));
+      border: none; border-radius: 14px; color: #fff;
+      font-family: 'Sarabun', sans-serif; font-size: 17px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; letter-spacing: 0.5px;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,212,255,0.4); }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .submit-btn .spinner { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
+    .submit-btn.loading .spinner { display: block; }
+    .submit-btn.loading .btn-text { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Stats */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+    .stat-value { font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 500; color: var(--accent); }
+    .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* History */
+    .history-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(30,58,95,0.5); }
+    .history-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .history-item:first-child { padding-top: 0; }
+    .history-badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; white-space: nowrap; }
+    .badge-in { background: rgba(0,255,157,0.1); color: var(--accent2); border: 1px solid rgba(0,255,157,0.2); }
+    .badge-out { background: rgba(255,107,53,0.1); color: var(--accent3); border: 1px solid rgba(255,107,53,0.2); }
+    .history-info { flex: 1; min-width: 0; }
+    .history-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .history-meta { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+    .history-time { font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--accent); font-weight: 500; }
+    .maps-link { color: var(--accent); text-decoration: none; font-size: 18px; opacity: 0.6; transition: opacity 0.2s; }
+    .maps-link:hover { opacity: 1; }
+
+    /* Chip */
+    .emp-chip { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(0,255,157,0.06); border: 1px solid rgba(0,255,157,0.2); border-radius: 8px; margin-top: 8px; font-size: 13px; color: var(--accent2); animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+
+    /* SweetAlert */
+    .swal2-popup { background: var(--surface) !important; color: var(--text) !important; border: 1px solid var(--border) !important; font-family: 'Sarabun', sans-serif !important; border-radius: 20px !important; }
+    .swal2-title { color: var(--text) !important; }
+    .swal2-html-container { color: var(--text-muted) !important; }
+    .swal2-confirm { background: linear-gradient(135deg,#0077aa,var(--accent)) !important; border-radius: 10px !important; font-family: 'Sarabun', sans-serif !important; }
+
+    /* Clear btn */
+    .clear-btn { background: none; border: 1px solid #ff475722; color: #ff475777; border-radius: 8px; padding: 6px 12px; font-size: 11px; cursor: pointer; font-family: 'Sarabun', sans-serif; transition: all 0.2s; margin-left: auto; display: block; margin-top: 4px; }
+    .clear-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+    @media (max-width: 380px) { .clock-time { font-size: 22px; } .container { padding: 12px; } }
+  </style>
+</head>
+<body>
+
+  <!-- Banner -->
+  <div class="demo-banner">
+    <div class="demo-dot"></div>
+    <span><strong>Demo Mode</strong> — ข้อมูลบันทึกในเครื่อง ใส่ URL Apps Script ด้านล่างเพื่อบันทึกลง Google Sheets จริง</span>
+  </div>
+
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+
+  <div class="container">
+
+    <div class="header">
+      <div class="header-icon">📍</div>
+      <h1>ระบบลงเวลาปฏิบัติงาน</h1>
+      <p>GPS Attendance System</p>
+    </div>
+
+    <!-- GAS Connector -->
+    <div class="gas-panel">
+      <div class="gas-panel-title">🔗 เชื่อมต่อ Google Apps Script Backend</div>
+      <div class="gas-input-row">
+        <input type="text" id="gasUrl" placeholder="https://script.google.com/macros/s/…/exec" />
+        <button class="gas-connect-btn" onclick="connectGAS()">เชื่อมต่อ</button>
+      </div>
+      <div class="gas-status-row" id="gasStatusRow">
+        <span>○</span><span>ยังไม่ได้เชื่อมต่อ — ทำงานในโหมด Demo</span>
+      </div>
+    </div>
+
+    <!-- Clock -->
+    <div class="clock-bar">
+      <div class="clock-time" id="clock">00:00:00</div>
+      <div class="clock-date">
+        <div id="dateTh"></div>
+        <div id="dateEn" style="font-size:11px;opacity:0.6;"></div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="card">
+      <div class="card-title">📊 สรุปวันนี้</div>
+      <div class="stats-grid">
+        <div class="stat-item"><div class="stat-value" id="statToday">0</div><div class="stat-label">ครั้งวันนี้</div></div>
+        <div class="stat-item"><div class="stat-value" id="statTotal">0</div><div class="stat-label">ทั้งหมด</div></div>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <div class="card">
+      <div class="card-title">✏️ บันทึกเวลา</div>
+
+      <div class="form-group">
+        <label>รหัสพนักงาน</label>
+        <input type="text" id="employeeId" placeholder="กรอกรหัสพนักงาน" autocomplete="off" />
+        <div id="empChip" style="display:none;" class="emp-chip"><span>✓</span><span id="empChipText"></span></div>
+      </div>
+
+      <div class="form-group">
+        <label>ชื่อ-นามสกุล</label>
+        <input type="text" id="fullName" placeholder="ชื่อ นามสกุล" />
+      </div>
+
+      <div class="form-group">
+        <label>แผนก / หน่วยงาน</label>
+        <input type="text" id="department" placeholder="ชื่อแผนก (ถ้ามี)" />
+      </div>
+
+      <div class="form-group">
+        <label>ประเภท</label>
+        <div class="type-toggle">
+          <button class="type-btn active-in" id="btnIn" onclick="setType('เข้างาน')">🟢 เข้างาน</button>
+          <button class="type-btn" id="btnOut" onclick="setType('ออกงาน')">🔴 ออกงาน</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>ตำแหน่ง GPS</label>
+        <div class="gps-status">
+          <div class="gps-dot acquiring" id="gpsDot"></div>
+          <div class="gps-text">
+            <div id="gpsLabel">กำลังระบุตำแหน่ง...</div>
+            <div class="gps-coords" id="gpsCoords"></div>
+          </div>
+          <button class="gps-retry-btn" onclick="getLocation()" id="gpsRetryBtn" style="display:none;">🔄 ลองใหม่</button>
+        </div>
+        <div class="accuracy-bar"><div class="accuracy-fill" id="accuracyFill"></div></div>
+      </div>
+
+      <div class="form-group">
+        <label>หมายเหตุ (ถ้ามี)</label>
+        <textarea id="note" placeholder="ระบุเหตุผล หรือรายละเอียดเพิ่มเติม..."></textarea>
+      </div>
+
+      <button class="submit-btn" id="submitBtn" onclick="submitAttendance()">
+        <div class="spinner"></div>
+        <span class="btn-text">📍 บันทึกเวลาและพิกัด GPS</span>
+      </button>
+    </div>
+
+    <!-- History -->
+    <div class="card">
+      <div class="card-title">📋 รายการล่าสุด</div>
+      <div id="historyList"><div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">ยังไม่มีรายการ</div></div>
+      <button class="clear-btn" onclick="clearHistory()">🗑 ล้างประวัติ (Demo)</button>
+    </div>
+
+  </div>
+
+  <script>
+    // ═══════════════════════════
+    // STATE
+    // ═══════════════════════════
+    const STORE_KEY = 'gps_att_v1';
+    let gasUrl = '';
+    let gasConnected = false;
+    let gpsData = { lat: null, lng: null, accuracy: null };
+    let attendanceType = 'เข้างาน';
+    let isSubmitting = false;
+
+    // Restore saved GAS URL
+    try {
+      const saved = localStorage.getItem('gas_url');
+      if (saved) { document.getElementById('gasUrl').value = saved; applyGasUrl(saved); }
+    } catch(e) {}
+
+    // ═══════════════════════════
+    // GAS CONNECTOR
+    // ═══════════════════════════
+    function connectGAS() {
+      applyGasUrl(document.getElementById('gasUrl').value.trim());
+    }
+
+    function applyGasUrl(url) {
+      const row = document.getElementById('gasStatusRow');
+      if (!url || !url.startsWith('https://script.google.com/macros/s/')) {
+        row.className = 'gas-status-row error-state';
+        row.innerHTML = '<span>✗</span><span>URL ไม่ถูกต้อง — ต้องขึ้นต้นด้วย https://script.google.com/macros/s/</span>';
+        gasConnected = false;
+        return;
+      }
+      gasUrl = url;
+      gasConnected = true;
+      try { localStorage.setItem('gas_url', url); } catch(e) {}
+      row.className = 'gas-status-row connected';
+      row.innerHTML = '<span>✓</span><span>เชื่อมต่อแล้ว — ข้อมูลจะถูกส่งไปยัง Google Sheets</span>';
+      document.querySelector('.demo-banner').style.display = 'none';
+    }
+
+    // ═══════════════════════════
+    // CLOCK
+    // ═══════════════════════════
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').textContent =
+        [now.getHours(), now.getMinutes(), now.getSeconds()].map(n => String(n).padStart(2,'0')).join(':');
+      const days = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+      const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+      document.getElementById('dateTh').textContent = `วน${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()+543}`;
+      document.getElementById('dateEn').textContent = now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // ═══════════════════════════
+    // TYPE
+    // ═══════════════════════════
+    function setType(t) {
+      attendanceType = t;
+      document.getElementById('btnIn').className = t === 'เข้างาน' ? 'type-btn active-in' : 'type-btn';
+      document.getElementById('btnOut').className = t === 'ออกงาน' ? 'type-btn active-out' : 'type-btn';
+    }
+
+    // ═══════════════════════════
+    // GPS
+    // ═══════════════════════════
+    function getLocation() {
+      const dot = document.getElementById('gpsDot');
+      const lbl = document.getElementById('gpsLabel');
+      const crd = document.getElementById('gpsCoords');
+      const rbtn = document.getElementById('gpsRetryBtn');
+      dot.className = 'gps-dot acquiring';
+      lbl.textContent = 'กำลังระบุตำแหน่ง...';
+      crd.textContent = '';
+      rbtn.style.display = 'none';
+      document.getElementById('accuracyFill').style.width = '0%';
+      if (!navigator.geolocation) {
+        dot.className = 'gps-dot error';
+        lbl.textContent = 'อุปกรณ์ไม่รองรับ GPS';
+        rbtn.style.display = 'block';
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          gpsData = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: Math.round(pos.coords.accuracy) };
+          dot.className = 'gps-dot success';
+          lbl.textContent = `ระบุตำแหน่งสำเร็จ (±${gpsData.accuracy} ม.)`;
+          crd.textContent = `${gpsData.lat.toFixed(6)}, ${gpsData.lng.toFixed(6)}`;
+          const a = Math.min(Math.max(gpsData.accuracy, 5), 100);
+          document.getElementById('accuracyFill').style.width = Math.round((1-(a-5)/95)*100) + '%';
+        },
+        err => {
+          dot.className = 'gps-dot error';
+          rbtn.style.display = 'block';
+          lbl.textContent = ({1:'ไม่ได้รับอนุญาต GPS — อนุญาตในเบราว์เซอร์',2:'ไม่พบสัญญาณ GPS',3:'หมดเวลา'})[err.code] || 'เกิดข้อผิดพลาด';
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    }
+    getLocation();
+
+    // ═══════════════════════════
+    // LOCAL STORAGE
+    // ═══════════════════════════
+    function getRecords() { try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch { return []; } }
+    function saveLocal(rec) {
+      const all = getRecords();
+      all.push(rec);
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(all)); } catch(e) {}
+    }
+    function todayStr() {
+      const d = new Date();
+      return [String(d.getDate()).padStart(2,'0'), String(d.getMonth()+1).padStart(2,'0'), d.getFullYear()].join('/');
+    }
+    function clearHistory() {
+      Swal.fire({
+        title:'ล้างประวัติ?', text:'จะลบข้อมูลทั้งหมดในเครื่อง',
+        icon:'warning', showCancelButton: true,
+        confirmButtonText:'ล้าง', cancelButtonText:'ยกเลิก',
+        customClass:{ popup:'swal2-popup' }
+      }).then(r => {
+        if (r.isConfirmed) {
+          try { localStorage.removeItem(STORE_KEY); } catch(e) {}
+          loadHistory();
+        }
+      });
+    }
+
+    // ═══════════════════════════
+    // SUBMIT
+    // ═══════════════════════════
+    function submitAttendance() {
+      if (isSubmitting) return;
+      const employeeId = document.getElementById('employeeId').value.trim();
+      const fullName   = document.getElementById('fullName').value.trim();
+      const department = document.getElementById('department').value.trim();
+      const note       = document.getElementById('note').value.trim();
+
+      if (!employeeId) { shake('employeeId'); showWarn('กรุณากรอกรหัสพนักงาน'); return; }
+      if (!fullName)   { shake('fullName');   showWarn('กรุณากรอกชื่อ-นามสกุล'); return; }
+      if (!gpsData.lat){ showWarn('ยังไม่พบตำแหน่ง GPS<br><small>กรุณารอหรือกด "ลองใหม่"</small>'); return; }
+
+      isSubmitting = true;
+      const btn = document.getElementById('submitBtn');
+      btn.classList.add('loading');
+      btn.disabled = true;
+
+      const now = new Date();
+      const timeStr = [now.getHours(), now.getMinutes(), now.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':');
+      const dateStr = todayStr();
+      const mapsLink = `https://www.google.com/maps?q=${gpsData.lat},${gpsData.lng}`;
+      const payload = { employeeId, fullName, department, type: attendanceType, latitude: gpsData.lat, longitude: gpsData.lng, accuracy: gpsData.accuracy, note };
+
+      if (gasConnected) {
+        // ── Send to Google Apps Script ──
+        fetch(gasUrl, {
+          method: 'POST',
+          body: new URLSearchParams({ data: JSON.stringify(payload) })
+        })
+        .then(r => r.json())
+        .then(res => done(res.success !== false, res.message, timeStr, dateStr, mapsLink, payload))
+        .catch(() => done(true, '(Offline fallback) บันทึกเฉพาะ Local', timeStr, dateStr, mapsLink, payload));
+      } else {
+        // ── Demo mode ──
+        setTimeout(() => done(true, 'โหมด Demo', timeStr, dateStr, mapsLink, payload), 700);
+      }
+    }
+
+    function done(success, msg, timeStr, dateStr, mapsLink, p) {
+      isSubmitting = false;
+      const btn = document.getElementById('submitBtn');
+      btn.classList.remove('loading');
+      btn.disabled = false;
+
+      if (success) {
+        saveLocal({ employeeId:p.employeeId, fullName:p.fullName, department:p.department, type:p.type, date:dateStr, time:timeStr, lat:p.latitude, lng:p.longitude, mapsLink, note:p.note, ts:Date.now() });
+        const emoji = p.type === 'เข้างาน' ? '🟢' : '🔴';
+        Swal.fire({
+          icon: 'success', title: 'บันทึกสำเร็จ!',
+          html: `<div style="text-align:center;line-height:2;">
+            <div style="font-size:36px;">${emoji}</div>
+            <div style="font-size:18px;font-weight:700;color:#e8f4fd;">${p.type}</div>
+            <div style="font-size:32px;font-family:'IBM Plex Mono',monospace;color:#00d4ff;font-weight:500;">${timeStr}</div>
+            <div style="font-size:13px;color:#7a9bb8;">${dateStr}</div>
+            <hr style="border-color:#1e3a5f;margin:12px 0;">
+            <a href="${mapsLink}" target="_blank" style="color:#00d4ff;text-decoration:none;font-size:13px;">📍 ดูตำแหน่งบน Google Maps</a>
+          </div>`,
+          confirmButtonText: 'ตกลง', customClass: { popup: 'swal2-popup' }
+        });
+        loadHistory();
+      } else {
+        Swal.fire({ icon:'error', title:'บันทึกไม่สำเร็จ', text:msg, confirmButtonText:'ตกลง', customClass:{popup:'swal2-popup'} });
+      }
+    }
+
+    // ═══════════════════════════
+    // HISTORY
+    // ═══════════════════════════
+    function loadHistory() {
+      const all = getRecords();
+      const today = todayStr();
+      document.getElementById('statToday').textContent = all.filter(r => r.date === today).length;
+      document.getElementById('statTotal').textContent = all.length;
+      renderHistory([...all].reverse().slice(0, 20));
+    }
+
+    function renderHistory(list) {
+      const el = document.getElementById('historyList');
+      if (!list.length) {
+        el.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">ยังไม่มีรายการ</div>';
+        return;
+      }
+      el.innerHTML = list.map(r => {
+        const isIn = r.type === 'เข้างาน';
+        return `<div class="history-item">
+          <span class="history-badge ${isIn ? 'badge-in' : 'badge-out'}">${isIn ? '▲ IN' : '▼ OUT'}</span>
+          <div class="history-info">
+            <div class="history-name">${escHtml(r.fullName)}</div>
+            <div class="history-meta">${escHtml(r.employeeId)} · ${escHtml(r.department||'-')} · ${r.date}</div>
+          </div>
+          <div class="history-time">${r.time}</div>
+          <a class="maps-link" href="${r.mapsLink}" target="_blank">📍</a>
+        </div>`;
+      }).join('');
+    }
+
+    function escHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+    // ═══════════════════════════
+    // HELPERS
+    // ═══════════════════════════
+    function showWarn(msg) {
+      Swal.fire({ icon:'warning', title:'กรุณาตรวจสอบ', html:msg, confirmButtonText:'ตกลง', customClass:{popup:'swal2-popup'} });
+    }
+    function shake(id) {
+      const el = document.getElementById(id);
+      el.style.borderColor = 'var(--danger)';
+      el.style.animation = 'none';
+      el.offsetHeight;
+      el.style.animation = 'shake 0.3s ease';
+      setTimeout(() => { el.style.borderColor=''; el.style.animation=''; }, 600);
+    }
+
+    loadHistory();
+  </script>
+</body>
+</html>
