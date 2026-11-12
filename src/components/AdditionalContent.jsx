@@ -65,10 +65,7 @@ export function AdditionalAdmin({ tab }) {
     const folder = tab === 'activity-gallery' ? 'activity' : 'site';
     let driveMeta = null;
     if (selectedFile) {
-      driveMeta = await uploadDriveFile(selectedFile, folder, form.status === 'published');
-      if (form.drive_file_id) await setDriveFilePublic(form.drive_file_id, false, folder);
-    } else if (form.drive_file_id) {
-      await setDriveFilePublic(form.drive_file_id, form.status === 'published', folder);
+      driveMeta = await uploadDriveFile(selectedFile, folder, false);
     }
     const payload = {
       title: form.title.trim(),
@@ -95,7 +92,14 @@ export function AdditionalAdmin({ tab }) {
       : await supabase.from(config.table).insert(payload);
     if (result.error) setMessage('บันทึกไม่สำเร็จ: ' + result.error.message);
     else {
-      setMessage('บันทึกข้อมูลเรียบร้อยแล้ว');
+      try {
+        const targetFileId = driveMeta?.fileId || form.drive_file_id;
+        if (targetFileId) await setDriveFilePublic(targetFileId, form.status === 'published', folder);
+        if (driveMeta && form.drive_file_id) await setDriveFilePublic(form.drive_file_id, false, folder);
+        setMessage('บันทึกข้อมูลเรียบร้อยแล้ว');
+      } catch (permissionError) {
+        setMessage('บันทึกข้อมูลแล้ว แต่ปรับสิทธิ์ไฟล์ไม่สำเร็จ: ' + permissionError.message);
+      }
       setForm(emptyForm);
       setSelectedFile(null);
       await load();
@@ -132,7 +136,7 @@ export function AdditionalAdmin({ tab }) {
         <h2>{form.id ? 'แก้ไขข้อมูล' : config.heading}</h2>
         <label>ชื่อเรื่อง<input value={form.title} onChange={e => update('title', e.target.value)} required /></label>
         {tab !== 'activity-gallery' && <label>คำอธิบายโดยย่อ<textarea rows="3" value={form.summary} onChange={e => update('summary', e.target.value)} /></label>}
-        {tab === 'management-models' && <label>เลือกภาพจากเครื่องเพื่ออัปโหลดไป Google Drive<input type="file" accept="image/*" onChange={e => setSelectedFile(e.target.files?.[0] || null)} /></label><label>หรือ URL ภาพประกอบเดิม<input type="url" value={form.image_url} onChange={e => update('image_url', e.target.value)} placeholder="https://..." /></label>}
+        {tab === 'management-models' && <><label>เลือกภาพจากเครื่องเพื่ออัปโหลดไป Google Drive<input type="file" accept="image/*" onChange={e => setSelectedFile(e.target.files?.[0] || null)} /></label><label>หรือ URL ภาพประกอบเดิม<input type="url" value={form.image_url} onChange={e => update('image_url', e.target.value)} placeholder="https://..." /></label></>}
         {tab === 'activity-gallery' && <>
           <label>อัปโหลดภาพกิจกรรมจากเครื่อง (ไม่เกิน 10 MB)<input type="file" accept="image/*" onChange={e => setSelectedFile(e.target.files?.[0] || null)} /></label><label>หรือ URL ภาพกิจกรรม<input type="url" value={form.image_url} onChange={e => update('image_url', e.target.value)} placeholder="https://..." /></label>
           <label>ข้อความทดแทนภาพ<input value={form.alt_text} onChange={e => update('alt_text', e.target.value)} placeholder="คำอธิบายภาพ" /></label>
@@ -145,7 +149,7 @@ export function AdditionalAdmin({ tab }) {
         <label>สถานะ<select value={form.status} onChange={e => update('status', e.target.value)}><option value="draft">ฉบับร่าง</option><option value="published">เผยแพร่</option><option value="archived">เก็บถาวร</option></select></label>
         {message && <p className="additional-message">{message}</p>}
         <button className="primary-button" disabled={busy}>{busy ? 'กำลังบันทึก…' : form.id ? 'บันทึกการแก้ไข' : 'เพิ่มรายการ'}</button>
-        {form.id && <button type="button" className="secondary-button additional-cancel" onClick={() => setForm(emptyForm)}>ยกเลิกการแก้ไข</button>}
+        {form.id && <button type="button" className="secondary-button additional-cancel" onClick={() => { setForm(emptyForm); setSelectedFile(null); }}>ยกเลิกการแก้ไข</button>}
       </form>
       <section className="record-card">
         <h2>รายการทั้งหมด <span>{rows.length}</span></h2>
