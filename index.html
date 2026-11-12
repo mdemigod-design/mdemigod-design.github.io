@@ -9,6 +9,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script>\n      const savedPath = sessionStorage.getItem("spa-redirect");\n      if (savedPath) { sessionStorage.removeItem("spa-redirect"); history.replaceState(null, "", savedPath); }\n    </script>\n    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
