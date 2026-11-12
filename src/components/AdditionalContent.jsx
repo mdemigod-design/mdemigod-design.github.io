@@ -65,7 +65,7 @@ export function AdditionalAdmin({ tab }) {
     const folder = tab === 'activity-gallery' ? 'activity' : 'site';
     let driveMeta = null;
     if (selectedFile) {
-      driveMeta = await uploadDriveFile(selectedFile, folder, false);
+      driveMeta = await uploadDriveFile(selectedFile, 'private', false);
     }
     const payload = {
       title: form.title.trim(),
