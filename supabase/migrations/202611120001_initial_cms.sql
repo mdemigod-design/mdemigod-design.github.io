@@ -263,3 +263,8 @@ with check ((select private.is_active_admin()));
 --
 -- Do not grant the browser INSERT/UPDATE/DELETE on admin_users. Add or deactivate admins
 -- through SQL Editor until a separately secured admin-management workflow is implemented.
+
+-- Lock down default privileges for future objects in the exposed public schema.
+alter default privileges for role postgres in schema public revoke select, insert, update, delete on tables from anon, authenticated, service_role;
+alter default privileges for role postgres in schema public revoke execute on functions from public, anon, authenticated, service_role;
+alter default privileges for role postgres in schema public revoke usage, select on sequences from anon, authenticated, service_role;
