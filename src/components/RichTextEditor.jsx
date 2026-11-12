@@ -15,8 +15,8 @@ function escapeHtml(text) {
 export function toRichHtml(value = '') {
   const text = String(value ?? '');
   if (!text) return '';
-  if (/<(?:p|h[1-6]|ul|ol|li|blockquote|strong|em|u|a|br)\\b/i.test(text)) return text;
-  return text.split(/\\n{2,}/).map(part => `<p>${escapeHtml(part).replace(/\\n/g, '<br>')}</p>`).join('');
+  if (/<(?:p|h[1-6]|ul|ol|li|blockquote|strong|em|u|a|br)\b/i.test(text)) return text;
+  return text.split(/\n{2,}/).map(part => `<p>${escapeHtml(part).replace(/\n/g, '<br>')}</p>`).join('');
 }
 
 export function RichTextContent({ html = '', className = '' }) {
