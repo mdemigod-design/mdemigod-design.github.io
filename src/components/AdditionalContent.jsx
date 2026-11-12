@@ -124,9 +124,15 @@ export function AdditionalAdmin({ tab }) {
 
   async function remove(row) {
     if (!window.confirm('ยืนยันลบรายการ "' + row.title + '" หรือไม่?')) return;
-    const { error } = await supabase.from(config.table).delete().eq('id', row.id);
-    setMessage(error ? 'ลบไม่สำเร็จ: ' + error.message : 'ลบรายการแล้ว');
-    if (!error) await load();
+    try {
+      if (row.drive_file_id) await setDriveFilePublic(row.drive_file_id, false, tab === 'activity-gallery' ? 'activity' : 'site');
+      const { error } = await supabase.from(config.table).delete().eq('id', row.id);
+      if (error) throw error;
+      setMessage('ลบรายการแล้ว');
+      await load();
+    } catch (error) {
+      setMessage('ลบไม่สำเร็จ: ' + error.message);
+    }
   }
 
   if (!config) return null;
