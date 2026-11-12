@@ -8,7 +8,7 @@ const CONFIG = Object.freeze({
   SUPABASE_URL: 'https://njcyivxrtfxrppfyodip.supabase.co',
   SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_GTSSfZ2LNDKiVSU-JLSegw_XbGiHMEE',
   DRIVE_ROOT_FOLDER_ID: '1oPzOtN1TcRyJOTzDj7ET1QAp1mdoK-rp',
-  MAX_FILE_BYTES: 10 * 1024 * 1024
+  MAX_FILE_BYTES: 4 * 1024 * 1024
 });
 
 const FOLDERS = Object.freeze({
