@@ -54,7 +54,7 @@ Deno.serve(async (req: Request) => {
     if (!response.ok || result.ok !== true) return reply(result, response.ok ? 400 : 502);
     return reply(result, 200);
   } catch (error) {
-    return reply({ ok: false, error: String(error?.message || error) }, 500);
+    return reply({ ok: false, error: error instanceof Error ? error.message : String(error) }, 500);
   }
 });
 
