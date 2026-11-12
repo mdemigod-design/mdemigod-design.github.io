@@ -85,16 +85,16 @@ function upload_(input, user) {
 
 function setPublic_(input) {
   const file = DriveApp.getFileById(String(input.fileId || ''));
-  assertManagedFile_(file);
+  const managed = isManagedFile_(file);
   const root = DriveApp.getFolderById(CONFIG.DRIVE_ROOT_FOLDER_ID);
   if (input.publish === true) {
     const folderKey = String(input.folder || '');
     if (!['activity', 'site', 'documents'].includes(folderKey)) throw new Error('หมวดเผยแพร่ไม่ถูกต้อง');
-    file.moveTo(getOrCreateFolder_(root, FOLDERS[folderKey]));
+    if (managed) file.moveTo(getOrCreateFolder_(root, FOLDERS[folderKey]));
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   } else {
     file.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
-    file.moveTo(getOrCreateFolder_(root, FOLDERS.private));
+    if (managed) file.moveTo(getOrCreateFolder_(root, FOLDERS.private));
   }
   return json_({ ok: true, fileId: file.getId(), isPublic: input.publish === true, viewUrl: file.getUrl(),
     publicUrl: 'https://drive.google.com/uc?export=view&id=' + file.getId() });
@@ -102,12 +102,12 @@ function setPublic_(input) {
 
 function trash_(input) {
   const file = DriveApp.getFileById(String(input.fileId || ''));
-  assertManagedFile_(file);
+  if (!isManagedFile_(file)) throw new Error('ไฟล์นี้ไม่ได้อยู่ในโฟลเดอร์ที่ CMS จัดการ');
   file.setTrashed(true);
   return json_({ ok: true, fileId: file.getId(), trashed: true });
 }
 
-function assertManagedFile_(file) {
+function isManagedFile_(file) {
   const parents = file.getParents();
   while (parents.hasNext()) {
     const folder = parents.next();
@@ -117,7 +117,7 @@ function assertManagedFile_(file) {
       if (ancestors.next().getId() === CONFIG.DRIVE_ROOT_FOLDER_ID) return true;
     }
   }
-  throw new Error('ไฟล์นี้ไม่ได้อยู่ในโฟลเดอร์ที่ CMS จัดการ');
+  return false;
 }
 
 function getOrCreateFolder_(parent, name) {
