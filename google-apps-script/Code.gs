@@ -63,7 +63,7 @@ function upload_(input, user) {
   const bytes = Utilities.base64Decode(encoded);
   if (bytes.length > CONFIG.MAX_FILE_BYTES) throw new Error('ไฟล์มีขนาดเกิน 10 MB');
   const mime = String(input.mimeType || 'application/octet-stream');
-  if (!/^(image\/(jpeg|png|gif|webp)|application\/pdf|application\/vnd\.|application\/msword|text\/plain)$/.test(mime)) {
+  if (!/^(image\/(jpeg|png|gif|webp)|application\/pdf|application\/vnd\..+|application\/msword|text\/plain)$/.test(mime)) {
     throw new Error('ไม่รองรับชนิดไฟล์นี้');
   }
   const root = DriveApp.getFolderById(CONFIG.DRIVE_ROOT_FOLDER_ID);
