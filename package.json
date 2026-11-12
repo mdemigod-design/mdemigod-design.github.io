@@ -11,7 +11,13 @@
   "dependencies": {
     "@supabase/supabase-js": "2.119.0",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "@tiptap/react": "^2.11.5",
+    "@tiptap/starter-kit": "^2.11.5",
+    "@tiptap/extension-link": "^2.11.5",
+    "@tiptap/extension-underline": "^2.11.5",
+    "@tiptap/extension-text-align": "^2.11.5",
+    "dompurify": "^3.2.6"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "6.3.0",
