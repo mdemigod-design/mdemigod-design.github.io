@@ -29,3 +29,31 @@
 .hero-rich-text{max-width:490px;color:#c4d0c8;font-size:16px;line-height:2}
 .hero-rich-text p{margin:0 0 8px}
 .page-content .rich-text-view{color:#66776d;font-size:15px}
+
+
+/* Additional CMS sections */
+.additional-section{background:#f8f9f5;border-top:1px solid #e7ebe4}
+.additional-content-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.additional-content-card{background:#fff;border:1px solid #e1e7df;padding:26px;min-width:0}
+.additional-content-card h3{font-size:20px;line-height:1.6;color:#173e36;margin:0 0 12px}
+.additional-content-card>p{color:#75857c;line-height:1.9;font-size:13px}
+.additional-content-card .rich-text-view{color:#596d62;font-size:14px;line-height:2}
+.additional-content-card .model-image{width:100%;max-height:300px;object-fit:cover;margin-bottom:18px}
+.activity-gallery-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.activity-photo{margin:0;background:#fff;border:1px solid #e1e7df;min-width:0}
+.activity-photo img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:#e8ede5}
+.activity-photo figcaption{padding:15px 17px;color:#29483b;font-size:13px;line-height:1.8}
+.activity-photo figcaption p{color:#78877e;margin:5px 0 0;font-size:12px}
+.additional-admin{margin-top:4px}
+.additional-admin .editor-card textarea{display:block;width:100%;margin-top:8px;padding:12px 13px;border:1px solid #dce3da;background:#fff;color:#243e34;outline:none;font-size:13px;resize:vertical}
+.additional-admin .editor-card select,.additional-admin .editor-card input{display:block;width:100%;margin-top:8px;padding:12px 13px;border:1px solid #dce3da;background:#fff;color:#243e34;outline:none;font-size:13px}
+.additional-admin .editor-card label{display:block;font-size:12px;font-weight:600;color:#52675d;margin:18px 0}
+.additional-message{font-size:12px;color:#3e654f;background:#edf3e9;padding:10px 12px;line-height:1.6}
+.additional-cancel{margin:12px 0 0 8px}
+.gallery-preview{display:block;max-width:100%;max-height:220px;object-fit:contain;margin:12px 0;border:1px solid #e1e7df}
+.additional-record{display:flex;align-items:center;gap:12px;min-width:0}
+.additional-record>img{width:58px;height:48px;object-fit:cover;background:#edf1e9}
+.additional-record>div{min-width:0}
+.additional-record b{overflow-wrap:anywhere}
+@media(max-width:900px){.activity-gallery-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.additional-content-grid,.activity-gallery-grid{grid-template-columns:1fr}.additional-content-card{padding:20px}}
