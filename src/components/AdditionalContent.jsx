@@ -138,7 +138,7 @@ export function AdditionalAdmin({ tab }) {
         {tab !== 'activity-gallery' && <label>คำอธิบายโดยย่อ<textarea rows="3" value={form.summary} onChange={e => update('summary', e.target.value)} /></label>}
         {tab === 'management-models' && <><label>เลือกภาพจากเครื่องเพื่ออัปโหลดไป Google Drive<input type="file" accept="image/*" onChange={e => setSelectedFile(e.target.files?.[0] || null)} /></label><label>หรือ URL ภาพประกอบเดิม<input type="url" value={form.image_url} onChange={e => update('image_url', e.target.value)} placeholder="https://..." /></label></>}
         {tab === 'activity-gallery' && <>
-          <label>อัปโหลดภาพกิจกรรมจากเครื่อง (ไม่เกิน 10 MB)<input type="file" accept="image/*" onChange={e => setSelectedFile(e.target.files?.[0] || null)} /></label><label>หรือ URL ภาพกิจกรรม<input type="url" value={form.image_url} onChange={e => update('image_url', e.target.value)} placeholder="https://..." /></label>
+          <label>อัปโหลดภาพกิจกรรมจากเครื่อง (ไม่เกิน 4 MB)<input type="file" accept="image/*" onChange={e => setSelectedFile(e.target.files?.[0] || null)} /></label><label>หรือ URL ภาพกิจกรรม<input type="url" value={form.image_url} onChange={e => update('image_url', e.target.value)} placeholder="https://..." /></label>
           <label>ข้อความทดแทนภาพ<input value={form.alt_text} onChange={e => update('alt_text', e.target.value)} placeholder="คำอธิบายภาพ" /></label>
           <label>วันที่จัดกิจกรรม<input type="date" value={form.activity_date} onChange={e => update('activity_date', e.target.value)} /></label>
           <label>คำบรรยายภาพ<textarea rows="3" value={form.summary} onChange={e => update('summary', e.target.value)} /></label>
