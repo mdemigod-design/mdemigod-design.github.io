@@ -8,7 +8,7 @@ create schema if not exists private;
 revoke all on schema private from public, anon, authenticated;
 grant usage on schema private to authenticated;
 
-create table if not exists public.admin_users (
+create table public.admin_users (
   user_id uuid primary key references auth.users(id) on delete cascade,
   is_active boolean not null default true,
   created_at timestamptz not null default now()
@@ -140,7 +140,7 @@ create table if not exists public.documents (
   updated_at timestamptz not null default now()
 );
 
-create index if not exists page_sections_page_order_idx on public.page_sections(page_id, sort_order);
+create index page_sections_page_order_idx on public.page_sections(page_id, sort_order);
 create index if not exists pages_publication_idx on public.pages(status, published_at);
 create index if not exists news_posts_publication_idx on public.news_posts(status, published_at desc);
 create index if not exists events_publication_idx on public.events(status, starts_at);
