@@ -1,33 +1,74 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabaseClient';
 
-export default function App() {
-  const [status, setStatus] = useState('กำลังตรวจสอบการเชื่อมต่อข้อมูล…');
+const SCHOOL = 'โรงเรียนอนุบาลชุมแสง (วัดทับกฤชกลาง)';
+const nav = [['overview','ภาพรวม'],['profile','ผู้อำนวยการ'],['settings','หน้าแรก'],['news','ข่าวสาร'],['events','กิจกรรม'],['documents','เอกสาร'],['pages','หน้าเว็บ']];
+const blankNews={id:null,slug:'',title:'',excerpt:'',body:'',category:'ข่าวประชาสัมพันธ์',status:'draft'};
+const blankEvent={id:null,title:'',description:'',starts_at:'',ends_at:'',location:'',status:'draft'};
+const blankDoc={id:null,title:'',description:'',category:'เอกสารทั่วไป',drive_file_id:'',public_url:'',mime_type:'',is_public:false};
+const blankPage={id:null,slug:'',title:'',summary:'',seo_title:'',seo_description:'',content:'',status:'draft'};
+const slugify=s=>s.toLowerCase().trim().replace(/[^a-z0-9ก-๙]+/g,'-').replace(/^-|-$/g,'');
 
-  useEffect(() => {
-    let active = true;
-    async function check() {
-      if (!supabase) {
-        if (active) setStatus('ยังไม่ได้ตั้งค่า Supabase — เว็บไซต์อยู่ระหว่างเตรียมระบบ');
-        return;
-      }
-      const { error } = await supabase.from('site_settings').select('setting_key').eq('is_public', true).limit(1);
-      if (active) setStatus(error ? 'ฐานข้อมูลยังไม่พร้อมเชื่อมต่อ กรุณาตรวจสอบการตั้งค่า' : 'เชื่อมต่อฐานข้อมูลแล้ว — กำลังเตรียมเนื้อหาเว็บไซต์');
-    }
-    check();
-    return () => { active = false; };
-  }, []);
+export default function App(){
+ const admin=window.location.pathname.startsWith('/admin');
+ const [loading,setLoading]=useState(true),[settings,setSettings]=useState({}),[director,setDirector]=useState(null),[news,setNews]=useState([]),[events,setEvents]=useState([]),[docs,setDocs]=useState([]),[pages,setPages]=useState([]);
+ async function refresh(){
+  if(!supabase){setLoading(false);return;} setLoading(true);
+  const [s,d,n,e,f,p]=await Promise.all([
+   supabase.from('site_settings').select('setting_key,setting_value').eq('is_public',true),
+   supabase.from('director_profile').select('*').eq('id',1).maybeSingle(),
+   supabase.from('news_posts').select('id,slug,title,excerpt,category,published_at').eq('status','published').order('published_at',{ascending:false}).limit(6),
+   supabase.from('events').select('id,title,description,starts_at,location').eq('status','published').order('starts_at').limit(6),
+   supabase.from('documents').select('id,title,description,category,public_url').eq('is_public',true).order('published_at',{ascending:false}).limit(8),
+   supabase.from('pages').select('id,slug,title,summary').eq('status','published').order('title')
+  ]);
+  if(s.data)setSettings(Object.fromEntries(s.data.map(x=>[x.setting_key,x.setting_value])));
+  setDirector(d.data||null);setNews(n.data||[]);setEvents(e.data||[]);setDocs(f.data||[]);setPages(p.data||[]);setLoading(false);
+ }
+ useEffect(()=>{refresh()},[]);
+ return admin?<Admin/>:<Public loading={loading} settings={settings} director={director} news={news} events={events} docs={docs} pages={pages}/>;
+}
 
-  return (
-    <main className="page">
-      <header className="topbar"><span className="brand-mark">ผ</span><span>เว็บไซต์ผู้อำนวยการ</span></header>
-      <section className="hero">
-        <p className="eyebrow">DIRECTOR'S WEBSITE</p>
-        <h1>โรงเรียนอนุบาลชุมแสง<br /> (วัดทับกฤชกลาง)</h1>
-        <p className="intro">พื้นที่สื่อสาร วิสัยทัศน์ ผลงาน และข่าวสารการพัฒนาการศึกษา</p>
-        <div className="status" role="status">{status}</div>
-      </section>
-      <footer>เว็บไซต์อยู่ระหว่างการพัฒนา · เนื้อหาจะจัดการผ่านระบบ CMS</footer>
-    </main>
-  );
+function Public({loading,settings,director,news,events,docs,pages}){
+ const title=settings.site_title||SCHOOL, hero=settings.hero_title||'ผู้นำทางการศึกษา\nสร้างโอกาสแห่งการเรียนรู้';
+ return <div className="public-site">
+  <header className="site-header"><a className="wordmark" href="/"><span className="crest">อ</span><span><b>{title}</b><small>DIRECTOR'S PORTAL</small></span></a><nav><a href="#about">เกี่ยวกับ</a><a href="#news">ข่าวสาร</a><a href="#events">กิจกรรม</a><a href="#docs">เอกสาร</a></nav><a className="admin-link" href="/admin">ผู้ดูแล ↗</a></header>
+  <section className="hero-section"><div className="hero-copy"><span className="overline">LEADERSHIP · EDUCATION · COMMUNITY</span><h1>{hero.split('\n').map((x,i)=><span key={i}>{x}</span>)}</h1><p>{settings.hero_subtitle||'พื้นที่เผยแพร่วิสัยทัศน์ แนวคิด และการขับเคลื่อนคุณภาพการศึกษา'}</p><a className="primary-button" href="#about">รู้จักแนวคิดการบริหาร →</a></div><div className="hero-art"><div className="art-ring"></div><div className="art-panel"><span>LEARN</span><b>GROW</b><i>TOGETHER</i></div><div className="art-caption">A BETTER FUTURE<br/>STARTS WITH LEARNING</div></div><div className="hero-bottom"><span>EDUCATIONAL LEADERSHIP</span><span>SCROLL TO EXPLORE ↓</span></div></section>
+  <section className="section-wrap intro-section" id="about"><div className="section-kicker">01 — ABOUT THE DIRECTOR</div><div className="intro-grid"><div><h2>การศึกษา<br/><em>เปลี่ยนแปลงชีวิต</em></h2><p className="lead">{settings.about_text||'มุ่งพัฒนาคุณภาพผู้เรียน ส่งเสริมครูและบุคลากร และสร้างความร่วมมือกับชุมชน เพื่อให้โรงเรียนเป็นพื้นที่แห่งการเรียนรู้อย่างมีความสุข'}</p></div><div className="director-card"><div className="portrait-placeholder">{director?.full_name?.slice(0,1)||'ผ'}</div><div><span className="muted-label">DIRECTOR</span><h3>{director?.full_name||'ข้อมูลผู้อำนวยการ'}</h3><p>{director?.position||'ผู้อำนวยการโรงเรียน'}</p></div>{director?.biography&&<p className="bio">{director.biography}</p>}</div></div></section>
+  <section className="section-wrap content-section" id="news"><div className="section-heading"><div><div className="section-kicker">02 — LATEST UPDATES</div><h2>ข่าวประชาสัมพันธ์</h2></div><span className="section-note">NEWS & ANNOUNCEMENTS</span></div>{loading?<p className="empty-state">กำลังโหลดข้อมูล…</p>:news.length?<div className="news-grid">{news.map((x,i)=><article className="news-card" key={x.id}><span className="news-number">0{i+1}</span><span className="tag">{x.category}</span><h3>{x.title}</h3><p>{x.excerpt}</p><small>{x.published_at?new Date(x.published_at).toLocaleDateString('th-TH',{dateStyle:'long'}):''}</small></article>)}</div>:<p className="empty-state">ยังไม่มีข่าวที่เผยแพร่</p>}</section>
+  <section className="section-wrap events-section" id="events"><div className="section-heading"><div><div className="section-kicker">03 — SCHOOL LIFE</div><h2>กิจกรรมและกำหนดการ</h2></div><span className="section-note">EVENTS & ACTIVITIES</span></div>{events.length?<div className="event-list">{events.map(x=><article className="event-row" key={x.id}><div className="event-date">{x.starts_at?new Date(x.starts_at).toLocaleDateString('th-TH',{day:'2-digit',month:'short'}):'—'}</div><div><h3>{x.title}</h3><p>{x.description}</p><small>{x.location}</small></div><span>↗</span></article>)}</div>:<p className="empty-state">ยังไม่มีกิจกรรมที่เผยแพร่</p>}</section>
+  <section className="section-wrap docs-section" id="docs"><div className="section-heading"><div><div className="section-kicker">04 — PUBLIC RESOURCES</div><h2>เอกสารเผยแพร่</h2></div><span className="section-note">DOCUMENT LIBRARY</span></div>{docs.length?<div className="document-grid">{docs.map(x=><a className="document-card" href={x.public_url} target="_blank" rel="noreferrer" key={x.id}><span className="doc-icon">↗</span><div><small>{x.category}</small><h3>{x.title}</h3><p>{x.description}</p></div></a>)}</div>:<p className="empty-state">ยังไม่มีเอกสารเผยแพร่</p>}</section>
+  {pages.length>0&&<section className="section-wrap pages-section"><div className="section-kicker">MORE INFORMATION</div><div className="page-links">{pages.map(x=><a href={'/page/'+x.slug} key={x.id}>{x.title}<b>↗</b></a>)}</div></section>}
+  <footer className="site-footer"><div><b>{title}</b><p>{settings.footer_text||'มุ่งมั่นพัฒนาคุณภาพการศึกษา เพื่ออนาคตของผู้เรียนและชุมชน'}</p></div><div className="footer-right"><a href="/admin">Admin Login ↗</a><small>© {new Date().getFullYear()} {SCHOOL}</small></div></footer>
+ </div>;
+}
+
+function Admin(){
+ const [session,setSession]=useState(null),[ready,setReady]=useState(false),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[tab,setTab]=useState('overview'),[notice,setNotice]=useState('');
+ const [profile,setProfile]=useState({full_name:'',position:'ผู้อำนวยการโรงเรียน',biography:''});
+ const [settings,setSettings]=useState({site_title:SCHOOL,hero_title:'ผู้นำทางการศึกษา\nสร้างโอกาสแห่งการเรียนรู้',hero_subtitle:'',about_text:'',footer_text:''});
+ const [news,setNews]=useState([]),[events,setEvents]=useState([]),[docs,setDocs]=useState([]),[pages,setPages]=useState([]);
+ const [nf,setNf]=useState(blankNews),[ef,setEf]=useState(blankEvent),[df,setDf]=useState(blankDoc),[pf,setPf]=useState(blankPage);
+ useEffect(()=>{if(!supabase){setReady(true);return;}supabase.auth.getSession().then(async r=>{if(r.data.session)await accept(r.data.session);setReady(true)});const {data}=supabase.auth.onAuthStateChange((_e,s)=>setSession(s));return()=>data.subscription.unsubscribe()},[]);
+ async function accept(s){if(!s){setSession(null);return;}const {data}=await supabase.from('admin_users').select('is_active').eq('user_id',s.user.id).maybeSingle();if(!data?.is_active){await supabase.auth.signOut();setSession(null);setError('บัญชีนี้ยังไม่ได้รับสิทธิ์ผู้ดูแลระบบ');return;}setSession(s);await load();}
+ async function load(){const [p,s,n,e,d,pg]=await Promise.all([supabase.from('director_profile').select('*').eq('id',1).maybeSingle(),supabase.from('site_settings').select('setting_key,setting_value'),supabase.from('news_posts').select('*').order('created_at',{ascending:false}),supabase.from('events').select('*').order('created_at',{ascending:false}),supabase.from('documents').select('*').order('created_at',{ascending:false}),supabase.from('pages').select('*').order('created_at',{ascending:false})]);if(p.data)setProfile({full_name:p.data.full_name,position:p.data.position,biography:p.data.biography});if(s.data)setSettings(v=>({...v,...Object.fromEntries(s.data.map(x=>[x.setting_key,x.setting_value]))}));setNews(n.data||[]);setEvents(e.data||[]);setDocs(d.data||[]);setPages(pg.data||[]);}
+ async function login(e){e.preventDefault();setBusy(true);setError('');const r=await supabase.auth.signInWithPassword({email,password});if(r.error)setError('เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบอีเมลและรหัสผ่าน');else await accept(r.data.session);setBusy(false);}
+ async function save(table,payload,id,done){setBusy(true);const r=id?await supabase.from(table).update(payload).eq('id',id):await supabase.from(table).insert(payload);setNotice(r.error?.message||'บันทึกข้อมูลเรียบร้อย');if(!r.error){done?.();await load();}setBusy(false);}
+ async function remove(table,id){if(!window.confirm('ยืนยันการลบรายการนี้หรือไม่?'))return;const r=await supabase.from(table).delete().eq('id',id);setNotice(r.error?.message||'ลบรายการแล้ว');await load();}
+ if(!ready)return <div className="admin-loading">กำลังตรวจสอบสิทธิ์…</div>;
+ if(!supabase)return <div className="login-screen"><div className="login-card"><h1>ยังไม่ได้เชื่อมต่อฐานข้อมูล</h1><p>กรุณาตั้งค่า Supabase ใน GitHub Actions</p></div></div>;
+ if(!session)return <div className="login-screen"><form className="login-card" onSubmit={login}><a className="back-home" href="/">← กลับหน้าเว็บไซต์</a><span className="overline">DIRECTOR CMS · SECURE ACCESS</span><h1>เข้าสู่ระบบผู้ดูแล</h1><p>สำหรับผู้ได้รับสิทธิ์ผู้ดูแลเว็บไซต์เท่านั้น</p><label>อีเมล<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required/></label><label>รหัสผ่าน<input type="password" value={password} onChange={e=>setPassword(e.target.value)} required/></label>{error&&<p className="form-error">{error}</p>}<button className="primary-button full" disabled={busy}>{busy?'กำลังเข้าสู่ระบบ…':'เข้าสู่ระบบ →'}</button></form></div>;
+ const field=(label,key,value,set,area=false)=><label>{label}>{area?<textarea rows="4" value={value||''} onChange={e=>set(v=>({...v,[key]:e.target.value}))}/>:<input value={value||''} onChange={e=>set(v=>({...v,[key]:e.target.value}))}/>}</label>;
+ const statusField=(form,set)=> <label>สถานะ<select value={form.status} onChange={e=>set(v=>({...v,status:e.target.value}))}><option value="draft">ฉบับร่าง</option><option value="published">เผยแพร่</option></select></label>;
+ const list=(title,rows,edit,table)=><section className="record-card"><h2>{title} <span>{rows.length}</span></h2>{rows.length?rows.map(x=><div className="record-row" key={x.id}><div><b>{x.title}</b><small>{x.status==='published'?'เผยแพร่':'ฉบับร่าง'} · {x.category||''}</small></div><div className="record-actions"><button onClick={()=>edit(x)}>แก้ไข</button><button className="delete-button" onClick={()=>remove(table,x.id)}>ลบ</button></div></div>):<p className="empty-state">ยังไม่มีรายการ</p>}</section>;
+ return <div className="admin-shell"><aside className="admin-sidebar"><a className="wordmark admin-brand" href="/"><span className="crest">อ</span><span><b>DIRECTOR CMS</b><small>{SCHOOL}</small></span></a><div className="admin-label">CONTENT MANAGEMENT</div><nav>{nav.map(([k,l])=><button key={k} className={tab===k?'active':''} onClick={()=>{setTab(k);setNotice('')}}>{l}</button>)}</nav><div className="sidebar-bottom"><span>{session.user.email}</span><button onClick={async()=>{await supabase.auth.signOut();setSession(null)}}>ออกจากระบบ ↗</button></div></aside>
+ <main className="admin-main"><header className="admin-top"><div><span className="overline">WEBSITE CONTROL CENTER</span><h1>{nav.find(x=>x[0]===tab)?.[1]}</h1></div><a href="/" target="_blank">ดูเว็บไซต์ ↗</a></header>{notice&&<div className="notice">{notice}</div>}
+ {tab==='overview'&&<><p className="admin-intro">จัดการเนื้อหาเว็บไซต์ได้จากที่เดียว</p><div className="stat-grid">{[['ข่าว',news.length],['กิจกรรม',events.length],['หน้าเว็บ',pages.length],['เอกสาร',docs.length]].map(x=><div className="stat-card" key={x[0]}><span>{x[0]}</span><b>{x[1]}</b></div>)}</div><div className="admin-help"><h2>เริ่มต้นใช้งาน</h2><p>เพิ่มข้อมูลผู้อำนวยการ ตั้งค่าหน้าแรก และจัดการข่าว กิจกรรม เอกสาร และหน้าเว็บได้จากเมนูด้านซ้าย</p></div></>}
+ {tab==='profile'&&<form className="editor-card" onSubmit={e=>{e.preventDefault();save('director_profile',{id:1,...profile},null)}}><h2>ข้อมูลผู้อำนวยการ</h2>{field('ชื่อ-นามสกุล','full_name',profile.full_name,setProfile)}{field('ตำแหน่ง','position',profile.position,setProfile)}{field('ประวัติ','biography',profile.biography,setProfile,true)}<button className="primary-button" disabled={busy}>บันทึก</button></form>}
+ {tab==='settings'&&<form className="editor-card" onSubmit={async e=>{e.preventDefault();setBusy(true);const rows=Object.entries(settings).map(([setting_key,setting_value])=>({setting_key,setting_value,is_public:true}));const r=await supabase.from('site_settings').upsert(rows,{onConflict:'setting_key'});setNotice(r.error?.message||'บันทึกการตั้งค่าแล้ว');setBusy(false)}}><h2>ข้อความหน้าแรก</h2>{field('ชื่อเว็บไซต์','site_title',settings.site_title,setSettings)}{field('หัวข้อหลัก','hero_title',settings.hero_title,setSettings,true)}{field('ข้อความรอง','hero_subtitle',settings.hero_subtitle,setSettings,true)}{field('ข้อความแนะนำ','about_text',settings.about_text,setSettings,true)}{field('ข้อความส่วนท้าย','footer_text',settings.footer_text,setSettings)}<button className="primary-button" disabled={busy}>บันทึกการตั้งค่า</button></form>}
+ {tab==='news'&&<div className="admin-columns"><form className="editor-card" onSubmit={e=>{e.preventDefault();save('news_posts',{slug:nf.slug||slugify(nf.title),title:nf.title,excerpt:nf.excerpt,body:{text:nf.body},category:nf.category,status:nf.status,published_at:nf.status==='published'?new Date().toISOString():null},nf.id,()=>setNf(blankNews))}}><h2>{nf.id?'แก้ไขข่าว':'เพิ่มข่าว'}</h2>{field('หัวข้อ','title',nf.title,setNf)}{field('Slug','slug',nf.slug,setNf)}{field('หมวดหมู่','category',nf.category,setNf)}{field('สรุปข่าว','excerpt',nf.excerpt,setNf,true)}{field('เนื้อหา','body',nf.body,setNf,true)}{statusField(nf,setNf)}<button className="primary-button">บันทึกข่าว</button></form>{list('รายการข่าว',news,x=>setNf({...x,body:x.body?.text||''}),'news_posts')}</div>}
+ {tab==='events'&&<div className="admin-columns"><form className="editor-card" onSubmit={e=>{e.preventDefault();save('events',{title:ef.title,description:ef.description,starts_at:ef.starts_at||null,ends_at:ef.ends_at||null,location:ef.location,status:ef.status,published_at:ef.status==='published'?new Date().toISOString():null},ef.id,()=>setEf(blankEvent))}}><h2>เพิ่มกิจกรรม</h2>{field('ชื่อกิจกรรม','title',ef.title,setEf)}{field('รายละเอียด','description',ef.description,setEf,true)}{field('วันเวลาเริ่ม (ISO)','starts_at',ef.starts_at,setEf)}{field('วันเวลาสิ้นสุด (ISO)','ends_at',ef.ends_at,setEf)}{field('สถานที่','location',ef.location,setEf)}{statusField(ef,setEf)}<button className="primary-button">บันทึกกิจกรรม</button></form>{list('รายการกิจกรรม',events,setEf,'events')}</div>}
+ {tab==='documents'&&<div className="admin-columns"><form className="editor-card" onSubmit={e=>{e.preventDefault();save('documents',{title:df.title,description:df.description,category:df.category,drive_file_id:df.drive_file_id,public_url:df.public_url,mime_type:df.mime_type||null,is_public:df.is_public,published_at:df.is_public?new Date().toISOString():null},df.id,()=>setDf(blankDoc))}}><h2>เพิ่มเอกสารจาก Google Drive</h2><p className="helper-text">อัปโหลดไฟล์ใน Drive แล้วนำ File ID และลิงก์ที่แชร์ได้มาใส่ที่นี่</p>{field('ชื่อเอกสาร','title',df.title,setDf)}{field('คำอธิบาย','description',df.description,setDf,true)}{field('หมวดหมู่','category',df.category,setDf)}{field('Drive File ID','drive_file_id',df.drive_file_id,setDf)}{field('ลิงก์ไฟล์','public_url',df.public_url,setDf)}{field('MIME type','mime_type',df.mime_type,setDf)}<label className="check-label"><input type="checkbox" checked={df.is_public} onChange={e=>setDf(v=>({...v,is_public:e.target.checked}))}/> อนุมัติให้เผยแพร่สาธารณะ</label><button className="primary-button">บันทึกเอกสาร</button></form>{list('คลังเอกสาร',docs,setDf,'documents')}</div>}
+ {tab==='pages'&&<div className="admin-columns"><form className="editor-card" onSubmit={async e=>{e.preventDefault();const payload={slug:pf.slug||slugify(pf.title),title:pf.title,summary:pf.summary,seo_title:pf.seo_title,seo_description:pf.seo_description,status:pf.status,published_at:pf.status==='published'?new Date().toISOString():null};const r=pf.id?await supabase.from('pages').update(payload).eq('id',pf.id).select().single():await supabase.from('pages').insert(payload).select().single();if(!r.error&&pf.content){const z=await supabase.from('page_sections').upsert({page_id:r.data.id,section_key:'main',heading:pf.title,content:{text:pf.content},is_visible:true,sort_order:0},{onConflict:'page_id,section_key'});if(z.error)r.error=z.error;}setNotice(r.error?.message||'บันทึกหน้าเว็บแล้ว');if(!r.error){setPf(blankPage);await load();}}}><h2>สร้างหน้าเว็บ</h2>{field('ชื่อหน้า','title',pf.title,setPf)}{field('Slug','slug',pf.slug,setPf)}{field('คำโปรย','summary',pf.summary,setPf,true)}{field('เนื้อหา','content',pf.content,setPf,true)}{field('SEO title','seo_title',pf.seo_title,setPf)}{field('SEO description','seo_description',pf.seo_description,setPf,true)}{statusField(pf,setPf)}<button className="primary-button">บันทึกหน้าเว็บ</button></form>{list('หน้าเว็บทั้งหมด',pages,async x=>{const r=await supabase.from('page_sections').select('content').eq('page_id',x.id).eq('section_key','main').maybeSingle();setPf({...x,content:r.data?.content?.text||''})},'pages')}</div>}
+ </main></div>;
 }
