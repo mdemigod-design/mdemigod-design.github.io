@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { RichTextEditor, RichTextContent } from './RichTextEditor';
+import { uploadDriveFile, setDriveFilePublic } from '../lib/driveMedia';
 
 const emptyForm = {
   id: null, title: '', summary: '', content: '', image_url: '', alt_text: '',
-  activity_date: '', sort_order: 0, status: 'draft'
+  activity_date: '', drive_file_id: '', sort_order: 0, status: 'draft'
 };
 
 const configs = {
@@ -34,6 +35,7 @@ export function AdditionalAdmin({ tab }) {
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
 
   async function load() {
     if (!config || !supabase) return;
@@ -46,6 +48,7 @@ export function AdditionalAdmin({ tab }) {
 
   useEffect(() => {
     setForm(emptyForm);
+    setSelectedFile(null);
     setMessage('');
     load();
   }, [tab]);
@@ -55,9 +58,18 @@ export function AdditionalAdmin({ tab }) {
   async function submit(event) {
     event.preventDefault();
     if (!form.title.trim()) return setMessage('กรุณากรอกชื่อเรื่อง');
-    if (tab === 'activity-gallery' && !form.image_url.trim()) return setMessage('กรุณาระบุ URL ของภาพกิจกรรม');
+    if (tab === 'activity-gallery' && !form.image_url.trim() && !selectedFile) return setMessage('กรุณาเลือกภาพกิจกรรมหรือระบุ URL ภาพ');
     setBusy(true);
     setMessage('');
+    try {
+    const folder = tab === 'activity-gallery' ? 'activity' : 'site';
+    let driveMeta = null;
+    if (selectedFile) {
+      driveMeta = await uploadDriveFile(selectedFile, folder, form.status === 'published');
+      if (form.drive_file_id) await setDriveFilePublic(form.drive_file_id, false, folder);
+    } else if (form.drive_file_id) {
+      await setDriveFilePublic(form.drive_file_id, form.status === 'published', folder);
+    }
     const payload = {
       title: form.title.trim(),
       summary: form.summary || '',
@@ -68,10 +80,11 @@ export function AdditionalAdmin({ tab }) {
       updated_at: new Date().toISOString()
     };
     if (config.type) payload.section_type = config.type;
-    if (tab === 'management-models') payload.image_url = form.image_url || '';
+    if (driveMeta) payload.drive_file_id = driveMeta.fileId;
+    if (tab === 'management-models') payload.image_url = driveMeta?.publicUrl || form.image_url || '';
     if (tab === 'activity-gallery') {
       payload.description = form.summary || '';
-      payload.image_url = form.image_url.trim();
+      payload.image_url = driveMeta?.publicUrl || form.image_url.trim();
       payload.alt_text = form.alt_text || form.title;
       payload.activity_date = form.activity_date || null;
       delete payload.summary;
@@ -84,18 +97,23 @@ export function AdditionalAdmin({ tab }) {
     else {
       setMessage('บันทึกข้อมูลเรียบร้อยแล้ว');
       setForm(emptyForm);
+      setSelectedFile(null);
       await load();
+    }
+    } catch (error) {
+      setMessage('ดำเนินการกับ Google Drive ไม่สำเร็จ: ' + error.message);
     }
     setBusy(false);
   }
 
   async function edit(row) {
+    setSelectedFile(null);
     setForm({
       ...emptyForm, ...row,
       summary: row.summary || row.description || '',
       content: row.content?.text || '',
       activity_date: row.activity_date || '',
-      image_url: row.image_url || ''
+      image_url: row.image_url || '', drive_file_id: row.drive_file_id || ''
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -114,9 +132,9 @@ export function AdditionalAdmin({ tab }) {
         <h2>{form.id ? 'แก้ไขข้อมูล' : config.heading}</h2>
         <label>ชื่อเรื่อง<input value={form.title} onChange={e => update('title', e.target.value)} required /></label>
         {tab !== 'activity-gallery' && <label>คำอธิบายโดยย่อ<textarea rows="3" value={form.summary} onChange={e => update('summary', e.target.value)} /></label>}
-        {tab === 'management-models' && <label>URL ภาพประกอบ<input type="url" value={form.image_url} onChange={e => update('image_url', e.target.value)} placeholder="https://..." /></label>}
+        {tab === 'management-models' && <label>เลือกภาพจากเครื่องเพื่ออัปโหลดไป Google Drive<input type="file" accept="image/*" onChange={e => setSelectedFile(e.target.files?.[0] || null)} /></label><label>หรือ URL ภาพประกอบเดิม<input type="url" value={form.image_url} onChange={e => update('image_url', e.target.value)} placeholder="https://..." /></label>}
         {tab === 'activity-gallery' && <>
-          <label>URL ภาพกิจกรรม<input type="url" value={form.image_url} onChange={e => update('image_url', e.target.value)} placeholder="ลิงก์ภาพที่เปิดดูได้แบบสาธารณะ" required /></label>
+          <label>อัปโหลดภาพกิจกรรมจากเครื่อง (ไม่เกิน 10 MB)<input type="file" accept="image/*" onChange={e => setSelectedFile(e.target.files?.[0] || null)} /></label><label>หรือ URL ภาพกิจกรรม<input type="url" value={form.image_url} onChange={e => update('image_url', e.target.value)} placeholder="https://..." /></label>
           <label>ข้อความทดแทนภาพ<input value={form.alt_text} onChange={e => update('alt_text', e.target.value)} placeholder="คำอธิบายภาพ" /></label>
           <label>วันที่จัดกิจกรรม<input type="date" value={form.activity_date} onChange={e => update('activity_date', e.target.value)} /></label>
           <label>คำบรรยายภาพ<textarea rows="3" value={form.summary} onChange={e => update('summary', e.target.value)} /></label>
