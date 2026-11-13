@@ -237,33 +237,33 @@ export function AdditionalPublicContent() {
 
   const standard = agreements.filter(item => item.section_type === 'standard_position');
   const challenge = agreements.filter(item => item.section_type === 'challenging_issue');
-  const renderAgreements = (items, heading, id) => items.length > 0 && <section className="section-wrap additional-section" id={id}>
-    <div className="section-heading"><div><div className="section-kicker">PERFORMANCE AGREEMENT</div><h2>{heading}</h2></div></div>
-    <div className="additional-content-grid">{items.map(item => <article className="additional-content-card" key={item.id}>
+  const renderAgreements = (items, heading, id, kicker) => <section className="section-wrap additional-section" id={id}>
+    <div className="section-heading"><div><div className="section-kicker">{kicker}</div><h2>{heading}</h2></div></div>
+    {items.length > 0 ? <div className="additional-content-grid">{items.map(item => <article className="additional-content-card" key={item.id}>
       <h3>{item.title}</h3>{item.summary && <p>{item.summary}</p>}
       <RichTextContent className="rich-text-view" html={item.content?.text || ''} />
       {item.drive_file_id && <div className="agreement-pdf-link"><a href={`https://drive.google.com/file/d/${item.drive_file_id}/view`} target="_blank" rel="noreferrer">📄 เปิดเอกสาร PDF แนบ</a><a href={`https://drive.google.com/uc?export=download&id=${item.drive_file_id}`} target="_blank" rel="noreferrer">ดาวน์โหลด PDF</a></div>}
-    </article>)}</div>
+    </article>)}</div> : <p className="empty-state additional-empty">ขณะนี้ยังไม่มีข้อมูลในส่วนนี้ โปรดติดตามข้อมูลที่เผยแพร่ในภายหลัง</p>}
   </section>;
 
   return <>
-    {renderAgreements(standard, 'ส่วนที่ 1 ข้อตกลงในการพัฒนางานตามมาตรฐานตำแหน่ง', 'agreements-standard')}
-    {renderAgreements(challenge, 'ส่วนที่ 2 ประเด็นท้าทายในการพัฒนาผลลัพธ์การเรียนรู้ของผู้เรียน', 'agreements-challenge')}
-    {bestPractices.length > 0 && <section className="section-wrap additional-section" id="best-practice"><div className="section-heading"><div><div className="section-kicker">BEST PRACTICE</div><h2>ส่วนที่ 3 Best Practice</h2></div></div><div className="additional-content-grid">{bestPractices.map(item => <article className="additional-content-card" key={item.id}><span className="best-practice-year">{item.academic_year}</span><h3>{item.title}</h3>{item.image_url && <img className="best-practice-image" src={item.image_url} alt={`ภาพประกอบ ${item.title}`} loading="lazy" />}<RichTextContent className="rich-text-view" html={item.details?.text || ''} /><div className="best-practice-links">{item.pdf_file_id && <><a href={`https://drive.google.com/file/d/${item.pdf_file_id}/view`} target="_blank" rel="noreferrer">📄 เปิดเอกสาร PDF</a><a href={`https://drive.google.com/uc?export=download&id=${item.pdf_file_id}`} target="_blank" rel="noreferrer">ดาวน์โหลด PDF</a></>}</div></article>)}</div></section>}
-    {models.length > 0 && <section className="section-wrap additional-section" id="management-models">
+    {renderAgreements(standard, 'ส่วนที่ 1 ข้อตกลงมาตรฐานตำแหน่ง', 'agreements-standard', 'PART 1 · PERFORMANCE AGREEMENT')}
+    {renderAgreements(challenge, 'ส่วนที่ 2 ประเด็นท้าทาย', 'agreements-challenge', 'PART 2 · CHALLENGING ISSUES')}
+    <section className="section-wrap additional-section" id="best-practice"><div className="section-heading"><div><div className="section-kicker">PART 3 · BEST PRACTICE</div><h2>ส่วนที่ 3 Best Practice</h2></div></div>{bestPractices.length > 0 ? <div className="additional-content-grid">{bestPractices.map(item => <article className="additional-content-card" key={item.id}><span className="best-practice-year">{item.academic_year}</span><h3>{item.title}</h3>{item.image_url && <img className="best-practice-image" src={item.image_url} alt={`ภาพประกอบ ${item.title}`} loading="lazy" />}<RichTextContent className="rich-text-view" html={item.details?.text || ''} /><div className="best-practice-links">{item.pdf_file_id && <><a href={`https://drive.google.com/file/d/${item.pdf_file_id}/view`} target="_blank" rel="noreferrer">📄 เปิดเอกสาร PDF</a><a href={`https://drive.google.com/uc?export=download&id=${item.pdf_file_id}`} target="_blank" rel="noreferrer">ดาวน์โหลด PDF</a></>}</div></article>)}</div> : <p className="empty-state additional-empty">ขณะนี้ยังไม่มีผลงาน Best Practice ที่เผยแพร่</p>}</section>
+    <section className="section-wrap additional-section" id="management-models">
       <div className="section-heading"><div><div className="section-kicker">MANAGEMENT FRAMEWORK</div><h2>รูปแบบการบริหารงาน</h2></div></div>
-      <div className="additional-content-grid">{models.map(item => <article className="additional-content-card" key={item.id}>
+      {models.length > 0 ? <div className="additional-content-grid">{models.map(item => <article className="additional-content-card" key={item.id}>
         {item.image_url && <img className="model-image" src={item.image_url} alt={item.title} />}
         <h3>{item.title}</h3>{item.summary && <p>{item.summary}</p>}
         <RichTextContent className="rich-text-view" html={item.content?.text || ''} />
-      </article>)}</div>
-    </section>}
-    {photos.length > 0 && <section className="section-wrap additional-section" id="activity-gallery">
+      </article>)}</div> : <p className="empty-state additional-empty">ขณะนี้ยังไม่มีข้อมูลรูปแบบการบริหารงานที่เผยแพร่</p>}
+    </section>
+    <section className="section-wrap additional-section" id="activity-gallery">
       <div className="section-heading"><div><div className="section-kicker">SCHOOL GALLERY</div><h2>ภาพกิจกรรมต่าง ๆ</h2></div></div>
-      <div className="activity-gallery-grid">{photos.map(photo => <figure className="activity-photo" key={photo.id}>
+      {photos.length > 0 ? <div className="activity-gallery-grid">{photos.map(photo => <figure className="activity-photo" key={photo.id}>
         <img src={photo.image_url} alt={photo.alt_text || photo.title} loading="lazy" />
         <figcaption><b>{photo.title}</b>{photo.description && <p>{photo.description}</p>}</figcaption>
-      </figure>)}</div>
-    </section>}
+      </figure>)}</div> : <p className="empty-state additional-empty">ขณะนี้ยังไม่มีภาพกิจกรรมที่เผยแพร่</p>}
+    </section>
   </>;
 }
