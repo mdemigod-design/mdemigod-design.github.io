@@ -227,7 +227,7 @@ export function AdditionalPublicContent() {
       supabase.from('management_models').select('*').eq('status', 'published').order('sort_order'),
       supabase.from('activity_gallery').select('*').eq('status', 'published').order('activity_date', { ascending: false }).order('sort_order'),
       supabase.from('best_practices').select('*').eq('status', 'published').not('published_at', 'is', null).order('academic_year', { ascending: false }).order('sort_order')
-    ]).then(([a, m, p]) => {
+    ]).then(([a, m, p, b]) => {
       setAgreements(a.data || []);
       setModels(m.data || []);
       setPhotos(p.data || []);
@@ -247,9 +247,9 @@ export function AdditionalPublicContent() {
   </section>;
 
   return <>
-    {bestPractices.length > 0 && <section className="section-wrap additional-section" id="best-practice"><div className="section-heading"><div><div className="section-kicker">BEST PRACTICE</div><h2>ส่วนที่ 3 Best Practice</h2></div></div><div className="additional-content-grid">{bestPractices.map(item => <article className="additional-content-card" key={item.id}><span className="best-practice-year">{item.academic_year}</span><h3>{item.title}</h3>{item.image_url && <img className="best-practice-image" src={item.image_url} alt={`ภาพประกอบ ${item.title}`} loading="lazy" />}<RichTextContent className="rich-text-view" html={item.details?.text || ''} /><div className="best-practice-links">{item.pdf_file_id && <><a href={`https://drive.google.com/file/d/${item.pdf_file_id}/view`} target="_blank" rel="noreferrer">📄 เปิดเอกสาร PDF</a><a href={`https://drive.google.com/uc?export=download&id=${item.pdf_file_id}`} target="_blank" rel="noreferrer">ดาวน์โหลด PDF</a></>}</div></article>)}</div></section>}
     {renderAgreements(standard, 'ส่วนที่ 1 ข้อตกลงในการพัฒนางานตามมาตรฐานตำแหน่ง', 'agreements-standard')}
     {renderAgreements(challenge, 'ส่วนที่ 2 ประเด็นท้าทายในการพัฒนาผลลัพธ์การเรียนรู้ของผู้เรียน', 'agreements-challenge')}
+    {bestPractices.length > 0 && <section className="section-wrap additional-section" id="best-practice"><div className="section-heading"><div><div className="section-kicker">BEST PRACTICE</div><h2>ส่วนที่ 3 Best Practice</h2></div></div><div className="additional-content-grid">{bestPractices.map(item => <article className="additional-content-card" key={item.id}><span className="best-practice-year">{item.academic_year}</span><h3>{item.title}</h3>{item.image_url && <img className="best-practice-image" src={item.image_url} alt={`ภาพประกอบ ${item.title}`} loading="lazy" />}<RichTextContent className="rich-text-view" html={item.details?.text || ''} /><div className="best-practice-links">{item.pdf_file_id && <><a href={`https://drive.google.com/file/d/${item.pdf_file_id}/view`} target="_blank" rel="noreferrer">📄 เปิดเอกสาร PDF</a><a href={`https://drive.google.com/uc?export=download&id=${item.pdf_file_id}`} target="_blank" rel="noreferrer">ดาวน์โหลด PDF</a></>}</div></article>)}</div></section>}
     {models.length > 0 && <section className="section-wrap additional-section" id="management-models">
       <div className="section-heading"><div><div className="section-kicker">MANAGEMENT FRAMEWORK</div><h2>รูปแบบการบริหารงาน</h2></div></div>
       <div className="additional-content-grid">{models.map(item => <article className="additional-content-card" key={item.id}>
