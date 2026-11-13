@@ -57,3 +57,6 @@
 .additional-record b{overflow-wrap:anywhere}
 @media(max-width:900px){.activity-gallery-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){.additional-content-grid,.activity-gallery-grid{grid-template-columns:1fr}.additional-content-card{padding:20px}}
+
+/* Best Practice cards and attachment links */
+.best-practice-year{display:inline-block;margin-bottom:8px;color:#9b7844;font-size:12px;font-weight:700;letter-spacing:.04em}.best-practice-media{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}.best-practice-media a,.best-practice-links a{display:inline-flex;align-items:center;gap:7px;padding:9px 13px;border:1px solid #dce5dc;color:#315b48;text-decoration:none;font-size:13px}.best-practice-image{display:block;width:100%;max-height:300px;object-fit:contain;margin:12px 0;background:#f3f5f1}.best-practice-links{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.best-practice-upload{padding:12px;background:#f6f8f4;border:1px solid #e1e7df}
