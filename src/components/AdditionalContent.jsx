@@ -5,7 +5,7 @@ import { uploadDriveFile, setDriveFilePublic } from '../lib/driveMedia';
 
 const emptyForm = {
   id: null, title: '', summary: '', content: '', image_url: '', alt_text: '',
-  activity_date: '', drive_file_id: '', sort_order: 0, status: 'draft'
+  activity_date: '', academic_year: '', drive_file_id: '', pdf_file_id: '', image_file_id: '', sort_order: 0, status: 'draft'
 };
 
 const configs = {
@@ -19,6 +19,7 @@ const configs = {
     title: 'ส่วนที่ 2 ประเด็นท้าทายในการพัฒนาผลลัพธ์การเรียนรู้ของผู้เรียน',
     heading: 'เพิ่มประเด็นท้าทาย'
   },
+  'best-practice': { table: 'best_practices', title: 'ส่วนที่ 3 Best Practice', heading: 'เพิ่มผลงาน Best Practice' },
   'management-models': {
     table: 'management_models', title: 'รูปแบบการบริหารงาน',
     heading: 'เพิ่มรูปแบบการบริหารงาน'
@@ -64,7 +65,7 @@ export function AdditionalAdmin({ tab }) {
     setBusy(true);
     setMessage('');
     try {
-    const folder = tab === 'activity-gallery' ? 'activity' : 'site';
+    const folder = tab === 'activity-gallery' ? 'activity' : tab === 'best-practice' ? 'best-practice' : 'site';
     let driveMeta = null;
     let pdfMeta = null;
     if (selectedFile) {
@@ -86,6 +87,16 @@ export function AdditionalAdmin({ tab }) {
     if (config.type) payload.section_type = config.type;
     if (driveMeta) payload.drive_file_id = driveMeta.fileId;
     if (config.type && pdfMeta) payload.drive_file_id = pdfMeta.fileId;
+    if (tab === 'best-practice') {
+      payload.academic_year = form.academic_year.trim();
+      if (!payload.academic_year) throw new Error('กรุณาระบุปีการศึกษาหรือปีงบประมาณ');
+      payload.details = { text: form.content || '' };
+      payload.pdf_file_id = pdfMeta?.fileId || form.pdf_file_id || null;
+      payload.image_file_id = driveMeta?.fileId || form.image_file_id || null;
+      payload.image_url = driveMeta?.publicUrl || form.image_url || '';
+      delete payload.summary;
+      delete payload.content;
+    }
     if (tab === 'management-models') payload.image_url = driveMeta?.publicUrl || form.image_url || '';
     if (tab === 'activity-gallery') {
       payload.description = form.summary || '';
@@ -102,8 +113,20 @@ export function AdditionalAdmin({ tab }) {
     else {
       try {
         const targetFileId = pdfMeta?.fileId || driveMeta?.fileId || form.drive_file_id;
-        if (targetFileId) await setDriveFilePublic(targetFileId, form.status === 'published', folder);
-        if ((driveMeta || pdfMeta) && form.drive_file_id) await setDriveFilePublic(form.drive_file_id, false, folder);
+        if (tab === 'best-practice') {
+          const imageId = driveMeta?.fileId || form.image_file_id;
+          const pdfId = pdfMeta?.fileId || form.pdf_file_id;
+          const imageResult = imageId ? await setDriveFilePublic(imageId, form.status === 'published', folder) : null;
+          if (pdfId) await setDriveFilePublic(pdfId, form.status === 'published', folder);
+          if (imageResult?.publicUrl && form.status === 'published') {
+            await supabase.from(config.table).update({ image_url: imageResult.publicUrl }).eq('id', form.id || result.data?.[0]?.id);
+          }
+          if (driveMeta && form.image_file_id) await setDriveFilePublic(form.image_file_id, false, folder);
+          if (pdfMeta && form.pdf_file_id) await setDriveFilePublic(form.pdf_file_id, false, folder);
+        } else {
+          if (targetFileId) await setDriveFilePublic(targetFileId, form.status === 'published', folder);
+          if ((driveMeta || pdfMeta) && form.drive_file_id) await setDriveFilePublic(form.drive_file_id, false, folder);
+        }
         setMessage('บันทึกข้อมูลเรียบร้อยแล้ว');
       } catch (permissionError) {
         setMessage('บันทึกข้อมูลแล้ว แต่ปรับสิทธิ์ไฟล์ไม่สำเร็จ: ' + permissionError.message);
@@ -124,6 +147,8 @@ export function AdditionalAdmin({ tab }) {
     setSelectedPdfFile(null);
     setForm({
       ...emptyForm, ...row,
+      academic_year: row.academic_year || '',
+      content: row.details?.text || row.content?.text || '',
       summary: row.summary || row.description || '',
       content: row.content?.text || '',
       activity_date: row.activity_date || '',
@@ -136,6 +161,10 @@ export function AdditionalAdmin({ tab }) {
     if (!window.confirm('ยืนยันลบรายการ "' + row.title + '" หรือไม่?')) return;
     try {
       if (row.drive_file_id) await setDriveFilePublic(row.drive_file_id, false, tab === 'activity-gallery' ? 'activity' : 'site');
+      if (tab === 'best-practice') {
+        if (row.pdf_file_id) await setDriveFilePublic(row.pdf_file_id, false, 'best-practice');
+        if (row.image_file_id) await setDriveFilePublic(row.image_file_id, false, 'best-practice');
+      }
       const { error } = await supabase.from(config.table).delete().eq('id', row.id);
       if (error) throw error;
       setMessage('ลบรายการแล้ว');
@@ -153,6 +182,12 @@ export function AdditionalAdmin({ tab }) {
         <label>ชื่อเรื่อง<input value={form.title} onChange={e => update('title', e.target.value)} required /></label>
         {tab !== 'activity-gallery' && <label>คำอธิบายโดยย่อ<textarea rows="3" value={form.summary} onChange={e => update('summary', e.target.value)} /></label>}
         {config.type && <div className="agreement-pdf-upload"><label>แนบเอกสาร PDF (ไม่เกิน 25 MB)<input type="file" accept="application/pdf,.pdf" onChange={e => setSelectedPdfFile(e.target.files?.[0] || null)} /></label>{selectedPdfFile && <p className="helper-text">ไฟล์ PDF ที่เลือก: {selectedPdfFile.name}</p>}{form.drive_file_id && !selectedPdfFile && <p className="helper-text">มีไฟล์ PDF แนบอยู่แล้ว <a href={`https://drive.google.com/file/d/${form.drive_file_id}/view`} target="_blank" rel="noreferrer">เปิดดูไฟล์เดิม</a></p>}</div>}
+        {tab === 'best-practice' && <>
+          <label>ปีการศึกษาหรือปีงบประมาณ<input value={form.academic_year} onChange={e => update('academic_year', e.target.value)} placeholder="เช่น ปีการศึกษา 2569 หรือ ปีงบประมาณ 2569" required /></label>
+          <label>รายละเอียดผลงาน<RichTextEditor label="รายละเอียด Best Practice" value={form.content} onChange={value => update('content', value)} /></label>
+          <div className="best-practice-upload"><label>ไฟล์เอกสาร PDF (ไม่เกิน 25 MB)<input type="file" accept="application/pdf,.pdf" onChange={e => setSelectedPdfFile(e.target.files?.[0] || null)} /></label>{selectedPdfFile && <small>เลือกแล้ว: {selectedPdfFile.name}</small>}{form.pdf_file_id && !selectedPdfFile && <p><a href={`https://drive.google.com/file/d/${form.pdf_file_id}/view`} target="_blank" rel="noreferrer">เปิด PDF เดิม</a></p>}</div>
+          <div className="best-practice-upload"><label>ภาพประกอบ (ไม่เกิน 25 MB)<input type="file" accept="image/*" onChange={e => setSelectedFile(e.target.files?.[0] || null)} /></label>{selectedFile && <small>เลือกแล้ว: {selectedFile.name}</small>}{form.image_url && <img className="gallery-preview" src={form.image_url} alt="ภาพประกอบ Best Practice" />}</div>
+        </>}
         {tab === 'management-models' && <><label>เลือกภาพจากเครื่องเพื่ออัปโหลดไป Google Drive (ไม่เกิน 25 MB)<input type="file" accept="image/*" onChange={e => setSelectedFile(e.target.files?.[0] || null)} /></label><label>หรือ URL ภาพประกอบเดิม<input type="url" value={form.image_url} onChange={e => update('image_url', e.target.value)} placeholder="https://..." /></label></>}
         {tab === 'activity-gallery' && <>
           <label>อัปโหลดภาพกิจกรรมจากเครื่อง (ไม่เกิน 25 MB)<input type="file" accept="image/*" onChange={e => setSelectedFile(e.target.files?.[0] || null)} /></label><label>หรือ URL ภาพกิจกรรม<input type="url" value={form.image_url} onChange={e => update('image_url', e.target.value)} placeholder="https://..." /></label>
@@ -173,7 +208,7 @@ export function AdditionalAdmin({ tab }) {
         {rows.length ? rows.map(row => <article className="record-row" key={row.id}>
           <div className="additional-record">
             {row.image_url && <img src={row.image_url} alt={row.alt_text || row.title} />}
-            <div><b>{row.title}</b><small>{row.status === 'published' ? 'เผยแพร่' : row.status === 'archived' ? 'เก็บถาวร' : 'ฉบับร่าง'}</small></div>
+            <div><b>{row.title}</b>{tab === 'best-practice' && <small>{row.academic_year}</small>}<small>{row.status === 'published' ? 'เผยแพร่' : row.status === 'archived' ? 'เก็บถาวร' : 'ฉบับร่าง'}</small></div>
           </div>
           <div className="record-actions"><button type="button" onClick={() => edit(row)}>แก้ไข</button><button type="button" className="delete-button" onClick={() => remove(row)}>ลบ</button></div>
         </article>) : <p className="empty-state">ยังไม่มีรายการ</p>}
@@ -186,17 +221,20 @@ export function AdditionalPublicContent() {
   const [agreements, setAgreements] = useState([]);
   const [models, setModels] = useState([]);
   const [photos, setPhotos] = useState([]);
+  const [bestPractices, setBestPractices] = useState([]);
 
   useEffect(() => {
     if (!supabase) return;
     Promise.all([
       supabase.from('performance_agreements').select('*').eq('status', 'published').order('section_type').order('sort_order'),
       supabase.from('management_models').select('*').eq('status', 'published').order('sort_order'),
-      supabase.from('activity_gallery').select('*').eq('status', 'published').order('activity_date', { ascending: false }).order('sort_order')
+      supabase.from('activity_gallery').select('*').eq('status', 'published').order('activity_date', { ascending: false }).order('sort_order'),
+      supabase.from('best_practices').select('*').eq('status', 'published').not('published_at', 'is', null).order('academic_year', { ascending: false }).order('sort_order')
     ]).then(([a, m, p]) => {
       setAgreements(a.data || []);
       setModels(m.data || []);
       setPhotos(p.data || []);
+      setBestPractices(b.data || []);
     });
   }, []);
 
@@ -212,6 +250,7 @@ export function AdditionalPublicContent() {
   </section>;
 
   return <>
+    {bestPractices.length > 0 && <section className="section-wrap additional-section" id="best-practice"><div className="section-heading"><div><div className="section-kicker">BEST PRACTICE</div><h2>ส่วนที่ 3 Best Practice</h2></div></div><div className="additional-content-grid">{bestPractices.map(item => <article className="additional-content-card" key={item.id}><span className="best-practice-year">{item.academic_year}</span><h3>{item.title}</h3>{item.image_url && <img className="best-practice-image" src={item.image_url} alt={`ภาพประกอบ ${item.title}`} loading="lazy" />}<RichTextContent className="rich-text-view" html={item.details?.text || ''} /><div className="best-practice-links">{item.pdf_file_id && <><a href={`https://drive.google.com/file/d/${item.pdf_file_id}/view`} target="_blank" rel="noreferrer">📄 เปิดเอกสาร PDF</a><a href={`https://drive.google.com/uc?export=download&id=${item.pdf_file_id}`} target="_blank" rel="noreferrer">ดาวน์โหลด PDF</a></>}</div></article>)}</div></section>}
     {renderAgreements(standard, 'ส่วนที่ 1 ข้อตกลงในการพัฒนางานตามมาตรฐานตำแหน่ง', 'agreements-standard')}
     {renderAgreements(challenge, 'ส่วนที่ 2 ประเด็นท้าทายในการพัฒนาผลลัพธ์การเรียนรู้ของผู้เรียน', 'agreements-challenge')}
     {models.length > 0 && <section className="section-wrap additional-section" id="management-models">
