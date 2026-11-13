@@ -16,7 +16,7 @@ async function invokeDrive(body) {
 
 export async function uploadDriveFile(file, folder, publish = false) {
   if (!file) throw new Error('กรุณาเลือกไฟล์');
-  if (file.size > 4 * 1024 * 1024) throw new Error('ไฟล์มีขนาดเกิน 4 MB');
+  if (file.size > 25 * 1024 * 1024) throw new Error('ไฟล์มีขนาดเกิน 25 MB');
   const base64 = await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
