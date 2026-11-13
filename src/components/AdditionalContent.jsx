@@ -193,7 +193,7 @@ export function AdditionalAdmin({ tab }) {
           <label>คำบรรยายภาพ<textarea rows="3" value={form.summary} onChange={e => update('summary', e.target.value)} /></label>
           {form.image_url && <img className="gallery-preview" src={form.image_url} alt={form.alt_text || 'ตัวอย่างภาพ'} />}
         </>}
-        {tab !== 'activity-gallery' && <label>เนื้อหาเต็ม<RichTextEditor label="เนื้อหา" value={form.content} onChange={value => update('content', value)} /></label>}
+        {tab !== 'activity-gallery' && tab !== 'best-practice' && <label>เนื้อหาเต็ม<RichTextEditor label="เนื้อหา" value={form.content} onChange={value => update('content', value)} /></label>}
         <label>ลำดับการแสดง<input type="number" value={form.sort_order} onChange={e => update('sort_order', e.target.value)} /></label>
         <label>สถานะ<select value={form.status} onChange={e => update('status', e.target.value)}><option value="draft">ฉบับร่าง</option><option value="published">เผยแพร่</option><option value="archived">เก็บถาวร</option></select></label>
         {message && <p className="additional-message">{message}</p>}
