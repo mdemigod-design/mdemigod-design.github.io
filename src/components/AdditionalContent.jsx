@@ -36,6 +36,7 @@ export function AdditionalAdmin({ tab }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedPdfFile, setSelectedPdfFile] = useState(null);
 
   async function load() {
     if (!config || !supabase) return;
@@ -49,6 +50,7 @@ export function AdditionalAdmin({ tab }) {
   useEffect(() => {
     setForm(emptyForm);
     setSelectedFile(null);
+    setSelectedPdfFile(null);
     setMessage('');
     load();
   }, [tab]);
@@ -64,8 +66,13 @@ export function AdditionalAdmin({ tab }) {
     try {
     const folder = tab === 'activity-gallery' ? 'activity' : 'site';
     let driveMeta = null;
+    let pdfMeta = null;
     if (selectedFile) {
       driveMeta = await uploadDriveFile(selectedFile, 'private', false);
+    }
+    if (selectedPdfFile) {
+      if (selectedPdfFile.type !== 'application/pdf' && !selectedPdfFile.name.toLowerCase().endsWith('.pdf')) throw new Error('กรุณาเลือกไฟล์ PDF เท่านั้น');
+      pdfMeta = await uploadDriveFile(selectedPdfFile, 'private', false);
     }
     const payload = {
       title: form.title.trim(),
@@ -78,6 +85,7 @@ export function AdditionalAdmin({ tab }) {
     };
     if (config.type) payload.section_type = config.type;
     if (driveMeta) payload.drive_file_id = driveMeta.fileId;
+    if (config.type && pdfMeta) payload.drive_file_id = pdfMeta.fileId;
     if (tab === 'management-models') payload.image_url = driveMeta?.publicUrl || form.image_url || '';
     if (tab === 'activity-gallery') {
       payload.description = form.summary || '';
@@ -93,15 +101,16 @@ export function AdditionalAdmin({ tab }) {
     if (result.error) setMessage('บันทึกไม่สำเร็จ: ' + result.error.message);
     else {
       try {
-        const targetFileId = driveMeta?.fileId || form.drive_file_id;
+        const targetFileId = pdfMeta?.fileId || driveMeta?.fileId || form.drive_file_id;
         if (targetFileId) await setDriveFilePublic(targetFileId, form.status === 'published', folder);
-        if (driveMeta && form.drive_file_id) await setDriveFilePublic(form.drive_file_id, false, folder);
+        if ((driveMeta || pdfMeta) && form.drive_file_id) await setDriveFilePublic(form.drive_file_id, false, folder);
         setMessage('บันทึกข้อมูลเรียบร้อยแล้ว');
       } catch (permissionError) {
         setMessage('บันทึกข้อมูลแล้ว แต่ปรับสิทธิ์ไฟล์ไม่สำเร็จ: ' + permissionError.message);
       }
       setForm(emptyForm);
       setSelectedFile(null);
+      setSelectedPdfFile(null);
       await load();
     }
     } catch (error) {
@@ -112,6 +121,7 @@ export function AdditionalAdmin({ tab }) {
 
   async function edit(row) {
     setSelectedFile(null);
+    setSelectedPdfFile(null);
     setForm({
       ...emptyForm, ...row,
       summary: row.summary || row.description || '',
@@ -142,6 +152,7 @@ export function AdditionalAdmin({ tab }) {
         <h2>{form.id ? 'แก้ไขข้อมูล' : config.heading}</h2>
         <label>ชื่อเรื่อง<input value={form.title} onChange={e => update('title', e.target.value)} required /></label>
         {tab !== 'activity-gallery' && <label>คำอธิบายโดยย่อ<textarea rows="3" value={form.summary} onChange={e => update('summary', e.target.value)} /></label>}
+        {config.type && <div className="agreement-pdf-upload"><label>แนบเอกสาร PDF (ไม่เกิน 25 MB)<input type="file" accept="application/pdf,.pdf" onChange={e => setSelectedPdfFile(e.target.files?.[0] || null)} /></label>{selectedPdfFile && <p className="helper-text">ไฟล์ PDF ที่เลือก: {selectedPdfFile.name}</p>}{form.drive_file_id && !selectedPdfFile && <p className="helper-text">มีไฟล์ PDF แนบอยู่แล้ว <a href={`https://drive.google.com/file/d/${form.drive_file_id}/view`} target="_blank" rel="noreferrer">เปิดดูไฟล์เดิม</a></p>}</div>}
         {tab === 'management-models' && <><label>เลือกภาพจากเครื่องเพื่ออัปโหลดไป Google Drive (ไม่เกิน 25 MB)<input type="file" accept="image/*" onChange={e => setSelectedFile(e.target.files?.[0] || null)} /></label><label>หรือ URL ภาพประกอบเดิม<input type="url" value={form.image_url} onChange={e => update('image_url', e.target.value)} placeholder="https://..." /></label></>}
         {tab === 'activity-gallery' && <>
           <label>อัปโหลดภาพกิจกรรมจากเครื่อง (ไม่เกิน 25 MB)<input type="file" accept="image/*" onChange={e => setSelectedFile(e.target.files?.[0] || null)} /></label><label>หรือ URL ภาพกิจกรรม<input type="url" value={form.image_url} onChange={e => update('image_url', e.target.value)} placeholder="https://..." /></label>
@@ -155,7 +166,7 @@ export function AdditionalAdmin({ tab }) {
         <label>สถานะ<select value={form.status} onChange={e => update('status', e.target.value)}><option value="draft">ฉบับร่าง</option><option value="published">เผยแพร่</option><option value="archived">เก็บถาวร</option></select></label>
         {message && <p className="additional-message">{message}</p>}
         <button className="primary-button" disabled={busy}>{busy ? 'กำลังบันทึก…' : form.id ? 'บันทึกการแก้ไข' : 'เพิ่มรายการ'}</button>
-        {form.id && <button type="button" className="secondary-button additional-cancel" onClick={() => { setForm(emptyForm); setSelectedFile(null); }}>ยกเลิกการแก้ไข</button>}
+        {form.id && <button type="button" className="secondary-button additional-cancel" onClick={() => { setForm(emptyForm); setSelectedFile(null); setSelectedPdfFile(null); }}>ยกเลิกการแก้ไข</button>}
       </form>
       <section className="record-card">
         <h2>รายการทั้งหมด <span>{rows.length}</span></h2>
@@ -196,6 +207,7 @@ export function AdditionalPublicContent() {
     <div className="additional-content-grid">{items.map(item => <article className="additional-content-card" key={item.id}>
       <h3>{item.title}</h3>{item.summary && <p>{item.summary}</p>}
       <RichTextContent className="rich-text-view" html={item.content?.text || ''} />
+      {item.drive_file_id && <div className="agreement-pdf-link"><a href={`https://drive.google.com/file/d/${item.drive_file_id}/view`} target="_blank" rel="noreferrer">📄 เปิดเอกสาร PDF แนบ</a><a href={`https://drive.google.com/uc?export=download&id=${item.drive_file_id}`} target="_blank" rel="noreferrer">ดาวน์โหลด PDF</a></div>}
     </article>)}</div>
   </section>;
 
