@@ -5,7 +5,7 @@ import { AdditionalAdmin, AdditionalPublicContent } from './components/Additiona
 import { uploadDriveFile, setDriveFilePublic } from './lib/driveMedia';
 
 const SCHOOL = 'โรงเรียนอนุบาลชุมแสง (วัดทับกฤชกลาง)';
-const nav = [['overview','ภาพรวม'],['profile','ผู้อำนวยการ'],['settings','หน้าแรก'],['news','ข่าวสาร'],['events','กิจกรรม'],['documents','เอกสาร'],['pages','หน้าเว็บ'],['agreements-standard','ส่วนที่ 1 ข้อตกลงมาตรฐานตำแหน่ง'],['agreements-challenge','ส่วนที่ 2 ประเด็นท้าทาย'],['management-models','รูปแบบการบริหารงาน'],['activity-gallery','ภาพกิจกรรม'],['best-practice','ส่วนที่ 3 Best Practice']];
+const nav = [['overview','ภาพรวม'],['profile','ผู้อำนวยการ'],['settings','หน้าแรก'],['news','ข่าวสาร'],['events','กิจกรรม'],['documents','เอกสาร'],['pages','หน้าเว็บ'],['agreements-standard','ส่วนที่ 1 ข้อตกลงมาตรฐานตำแหน่ง'],['agreements-challenge','ส่วนที่ 2 ประเด็นท้าทาย'],['best-practice','ส่วนที่ 3 Best Practice'],['management-models','รูปแบบการบริหารงาน'],['activity-gallery','ภาพกิจกรรม']];
 const blankNews={id:null,slug:'',title:'',excerpt:'',body:'',category:'ข่าวประชาสัมพันธ์',status:'draft'};
 const blankEvent={id:null,title:'',description:'',starts_at:'',ends_at:'',location:'',status:'draft'};
 const blankDoc={id:null,title:'',description:'',category:'เอกสารทั่วไป',drive_file_id:'',public_url:'',mime_type:'',is_public:false,selectedFile:null};
