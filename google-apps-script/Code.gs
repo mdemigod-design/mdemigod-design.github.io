@@ -15,7 +15,8 @@ const FOLDERS = Object.freeze({
   activity: '01 ภาพกิจกรรม',
   site: '02 ภาพประกอบเว็บไซต์',
   documents: '03 เอกสารเผยแพร่',
-  private: '04 เอกสารส่วนตัวและสำรอง'
+  private: '04 เอกสารส่วนตัวและสำรอง',
+  'best-practice': '05 best-practice'
 });
 
 function doPost(e) {
@@ -89,7 +90,7 @@ function setPublic_(input) {
   const root = DriveApp.getFolderById(CONFIG.DRIVE_ROOT_FOLDER_ID);
   if (input.publish === true) {
     const folderKey = String(input.folder || '');
-    if (!['activity', 'site', 'documents'].includes(folderKey)) throw new Error('หมวดเผยแพร่ไม่ถูกต้อง');
+    if (!['activity', 'site', 'documents', 'best-practice'].includes(folderKey)) throw new Error('หมวดเผยแพร่ไม่ถูกต้อง');
     if (managed) file.moveTo(getOrCreateFolder_(root, FOLDERS[folderKey]));
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   } else {
