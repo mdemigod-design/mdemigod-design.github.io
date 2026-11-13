@@ -123,7 +123,12 @@ function isManagedFile_(file) {
 
 function getOrCreateFolder_(parent, name) {
   const folders = parent.getFoldersByName(name);
-  return folders.hasNext() ? folders.next() : parent.createFolder(name);
+  const folder = folders.hasNext() ? folders.next() : parent.createFolder(name);
+  // The Best Practice folder is intentionally discoverable by the public.
+  if (name === FOLDERS['best-practice']) {
+    folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  }
+  return folder;
 }
 
 function safeName_(name) {
