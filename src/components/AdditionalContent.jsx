@@ -270,7 +270,7 @@ export function AdditionalPublicContent() {
       {item.is_demo && <span className="demo-label">ตัวอย่างเนื้อหา DEMO</span>}
       <h3>{item.title}</h3>{item.summary && <p>{item.summary}</p>}
       <RichTextContent className="rich-text-view" html={item.content?.text || ''} />
-      {item.drive_file_id && <div className="agreement-pdf-link"><a href={\`https://drive.google.com/file/d/\${item.drive_file_id}/view\`} target="_blank" rel="noreferrer">📄 เปิดเอกสาร PDF แนบ</a><a href={\`https://drive.google.com/uc?export=download&id=\${item.drive_file_id}\`} target="_blank" rel="noreferrer">ดาวน์โหลด PDF</a></div>}
+      {item.drive_file_id && <div className="agreement-pdf-link"><a href={`https://drive.google.com/file/d/${item.drive_file_id}/view`} target="_blank" rel="noreferrer">📄 เปิดเอกสาร PDF แนบ</a><a href={`https://drive.google.com/uc?export=download&id=${item.drive_file_id}`} target="_blank" rel="noreferrer">ดาวน์โหลด PDF</a></div>}
     </article>)}</div>
   </section>;
 
@@ -294,9 +294,9 @@ export function AdditionalPublicContent() {
       <div className="section-heading"><div><div className="section-kicker">PART 03 · BEST PRACTICE</div><h2>ส่วนที่ 3 Best Practice</h2></div><span className="section-note">INNOVATION & GOOD PRACTICE</span></div>
       <div className="best-practice-grid">{bestItems.map(item => <article className="best-practice-feature" key={item.id}>
         <div className="best-practice-feature-copy">{item.is_demo && <span className="demo-label">ตัวอย่างเนื้อหา DEMO</span>}<span className="best-practice-year">{item.academic_year}</span><h3>{item.title}</h3><RichTextContent className="rich-text-view" html={item.details?.text || ''} />
-          {item.pdf_file_id && <div className="best-practice-links"><a href={\`https://drive.google.com/file/d/\${item.pdf_file_id}/view\`} target="_blank" rel="noreferrer">📄 เปิดเอกสาร PDF</a><a href={\`https://drive.google.com/uc?export=download&id=\${item.pdf_file_id}\`} target="_blank" rel="noreferrer">ดาวน์โหลด PDF</a></div>}
+          {item.pdf_file_id && <div className="best-practice-links"><a href={`https://drive.google.com/file/d/${item.pdf_file_id}/view`} target="_blank" rel="noreferrer">📄 เปิดเอกสาร PDF</a><a href={`https://drive.google.com/uc?export=download&id=${item.pdf_file_id}`} target="_blank" rel="noreferrer">ดาวน์โหลด PDF</a></div>}
         </div>
-        <div className="best-practice-feature-art">{item.image_url ? <img src={item.image_url} alt={\`ภาพประกอบ \${item.title}\`} loading="lazy"/> : <div className="best-practice-monogram"><span>BEST</span><b>PRACTICE</b><small>LEARN · SHARE · GROW</small></div>}</div>
+        <div className="best-practice-feature-art">{item.image_url ? <img src={item.image_url} alt={`ภาพประกอบ ${item.title}`} loading="lazy"/> : <div className="best-practice-monogram"><span>BEST</span><b>PRACTICE</b><small>LEARN · SHARE · GROW</small></div>}</div>
       </article>)}</div>
     </section>
     <section className="section-wrap additional-section management-section" id="management-models">
@@ -314,7 +314,7 @@ export function AdditionalPublicContent() {
     <section className="section-wrap additional-section gallery-section" id="activity-gallery">
       <div className="section-heading"><div><div className="section-kicker">PART 05 · SCHOOL GALLERY</div><h2>ภาพกิจกรรมต่าง ๆ</h2></div><span className="section-note">MOMENTS THAT MATTER</span></div>
       <div className="activity-gallery-grid">{photoItems.map(photo => <figure className="activity-photo" key={photo.id}>
-        {photo.is_demo ? <div className={\`demo-photo-art demo-photo-\${photo.art}\`}><span>{photo.symbol}</span><small>PHOTO COMING SOON</small></div> : <img src={photo.image_url} alt={photo.alt_text || photo.title} loading="lazy" />}
+        {photo.is_demo ? <div className={`demo-photo-art demo-photo-${photo.art}`}><span>{photo.symbol}</span><small>PHOTO COMING SOON</small></div> : <img src={photo.image_url} alt={photo.alt_text || photo.title} loading="lazy" />}
         <figcaption>{photo.is_demo && <span className="demo-label">ภาพตัวอย่าง</span>}<b>{photo.title}</b>{photo.description && <p>{photo.description}</p>}</figcaption>
       </figure>)}</div>
     </section>
