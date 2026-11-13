@@ -8,7 +8,7 @@ const CONFIG = Object.freeze({
   SUPABASE_URL: 'https://njcyivxrtfxrppfyodip.supabase.co',
   SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_GTSSfZ2LNDKiVSU-JLSegw_XbGiHMEE',
   DRIVE_ROOT_FOLDER_ID: '1oPzOtN1TcRyJOTzDj7ET1QAp1mdoK-rp',
-  MAX_FILE_BYTES: 4 * 1024 * 1024
+  MAX_FILE_BYTES: 25 * 1024 * 1024
 });
 
 const FOLDERS = Object.freeze({
@@ -61,7 +61,7 @@ function upload_(input, user) {
   const encoded = String(input.base64 || '');
   if (!encoded) throw new Error('ไม่พบข้อมูลไฟล์');
   const bytes = Utilities.base64Decode(encoded);
-  if (bytes.length > CONFIG.MAX_FILE_BYTES) throw new Error('ไฟล์มีขนาดเกิน 10 MB');
+  if (bytes.length > CONFIG.MAX_FILE_BYTES) throw new Error('ไฟล์มีขนาดเกิน 25 MB');
   const mime = String(input.mimeType || 'application/octet-stream');
   if (!/^(image\/(jpeg|png|gif|webp)|application\/pdf|application\/vnd\..+|application\/msword|text\/plain)$/.test(mime)) {
     throw new Error('ไม่รองรับชนิดไฟล์นี้');
