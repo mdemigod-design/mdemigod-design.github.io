@@ -116,11 +116,8 @@ export function AdditionalAdmin({ tab }) {
         if (tab === 'best-practice') {
           const imageId = driveMeta?.fileId || form.image_file_id;
           const pdfId = pdfMeta?.fileId || form.pdf_file_id;
-          const imageResult = imageId ? await setDriveFilePublic(imageId, form.status === 'published', folder) : null;
+          if (imageId) await setDriveFilePublic(imageId, form.status === 'published', folder);
           if (pdfId) await setDriveFilePublic(pdfId, form.status === 'published', folder);
-          if (imageResult?.publicUrl && form.status === 'published') {
-            await supabase.from(config.table).update({ image_url: imageResult.publicUrl }).eq('id', form.id || result.data?.[0]?.id);
-          }
           if (driveMeta && form.image_file_id) await setDriveFilePublic(form.image_file_id, false, folder);
           if (pdfMeta && form.pdf_file_id) await setDriveFilePublic(form.pdf_file_id, false, folder);
         } else {
